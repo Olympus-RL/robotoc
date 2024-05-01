@@ -12,6 +12,7 @@ model_info.point_contacts = [robotoc.ContactModelInfo('LF_FOOT', baumgarte_time_
                              robotoc.ContactModelInfo('RF_FOOT', baumgarte_time_step),
                              robotoc.ContactModelInfo('RH_FOOT', baumgarte_time_step)]
 robot = robotoc.Robot(model_info)
+robot.set_gravity(-3.72)
 
 dt = 0.02
 jump_length = np.array([0.8, 0, 0])
