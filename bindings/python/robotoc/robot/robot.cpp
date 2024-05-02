@@ -52,23 +52,36 @@ PYBIND11_MODULE(robot, m) {
             return J;
           },
           py::arg("q"))
+
+      .def(
+          "get_frame_world_jacobian",
+          [](Robot &self, const std::string &frame) {
+            Eigen::MatrixXd J = Eigen::MatrixXd::Zero(6, self.dimv());
+            self.getFrameWorldJacobian(frame, J);
+            return J;
+          },
+          py::arg("frame"))
       .def(
           "forward_kinematics",
-          [](Robot &self, const Eigen::VectorXd &q) {
-            self.updateFrameKinematics(q);
+          [](Robot &self, const Eigen::VectorXd &q, bool compute_jacobians) {
+            self.updateFrameKinematics(q, compute_jacobians);
           },
-          py::arg("q"))
-      .def(
-          "forward_kinematics",
-          [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v) {
-            self.updateFrameKinematics(q, v);
-          },
-          py::arg("q"), py::arg("v"))
+          py::arg("q"), py::arg("compute_jacobians") = false)
       .def(
           "forward_kinematics",
           [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
-             const Eigen::VectorXd &a) { self.updateFrameKinematics(q, v, a); },
-          py::arg("q"), py::arg("v"), py::arg("a"))
+             bool compute_jacobians) {
+            self.updateFrameKinematics(q, v, compute_jacobians);
+          },
+          py::arg("q"), py::arg("v"), py::arg("compute_jacobians") = false)
+      .def(
+          "forward_kinematics",
+          [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
+             const Eigen::VectorXd &a, bool compute_jacobians) {
+            self.updateFrameKinematics(q, v, a, compute_jacobians);
+          },
+          py::arg("q"), py::arg("v"), py::arg("a"),
+          py::arg("compute_jacobians") = false)
       .def("frame_position",
            static_cast<const Eigen::Vector3d &(Robot::*)(const int) const>(
                &Robot::framePosition),

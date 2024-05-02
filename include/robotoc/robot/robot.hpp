@@ -245,7 +245,8 @@ public:
             typename TangentVectorType2>
   void updateFrameKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
                              const Eigen::MatrixBase<TangentVectorType1> &v,
-                             const Eigen::MatrixBase<TangentVectorType2> &a);
+                             const Eigen::MatrixBase<TangentVectorType2> &a,
+                             bool compute_Jacobian = false);
 
   ///
   /// @brief Updates the frame kinematics of the robot. The frame placements
@@ -255,7 +256,8 @@ public:
   ///
   template <typename ConfigVectorType, typename TangentVectorType>
   void updateFrameKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
-                             const Eigen::MatrixBase<TangentVectorType> &v);
+                             const Eigen::MatrixBase<TangentVectorType> &v,
+                             bool compute_Jacobian = false);
 
   ///
   /// @brief Updates the frame kinematics of the robot. The frame placements
@@ -263,7 +265,8 @@ public:
   /// @param[in] q Configuration. Size must be Robot::dimq().
   ///
   template <typename ConfigVectorType>
-  void updateFrameKinematics(const Eigen::MatrixBase<ConfigVectorType> &q);
+  void updateFrameKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
+                             bool compute_Jacobian = false);
 
   ///
   /// @brief Returns the position of the frame. Before calling this function,
@@ -420,6 +423,18 @@ public:
   template <typename MatrixType>
   void getFrameJacobian(const int frame_id,
                         const Eigen::MatrixBase<MatrixType> &J);
+
+  ///
+  /// @brief Computes the Jacobian of the frame position expressed in the local
+  /// world aligned coordinate system.
+  //  Before calling this function, updateKinematics() must be
+  /// called.
+  /// @param[in] frame_name Name of the frame.
+  /// @param[out] J Jacobian. Size must be 6 x Robot::dimv().
+  ///
+  template <typename MatrixType>
+  void getFrameWorldJacobian(const std::string frame_name,
+                             const Eigen::MatrixBase<MatrixType> &J);
 
   ///
   /// @brief Gets the Jacobian of the position of the center of mass. Before
