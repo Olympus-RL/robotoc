@@ -347,7 +347,7 @@ inline void Robot::computeBaumgarteDerivatives(
   for (int i = 0; i < num_point_contacts; ++i) {
     if (contact_status.isContactActive(i)) {
       point_contacts_[i].computeBaumgarteDerivatives(
-          model_, data_,
+          model_, data_, contact_status.contactPosition(i),
           (const_cast<Eigen::MatrixBase<MatrixType1> &>(baumgarte_partial_dq))
               .block(dimf, 0, 3, dimv_),
           (const_cast<Eigen::MatrixBase<MatrixType2> &>(baumgarte_partial_dv))
