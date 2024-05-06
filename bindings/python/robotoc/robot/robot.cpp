@@ -18,6 +18,15 @@ PYBIND11_MODULE(robot, m) {
       .def(py::init<const RobotModelInfo &>(), py::arg("robot_model_info"))
       .def(py::init<>())
       .def(
+          "rnea",
+          [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
+             const Eigen::VectorXd &a) {
+            Eigen::VectorXd tau = Eigen::VectorXd::Zero(self.dimv());
+            self.RNEA(q, v, a, tau);
+            return tau;
+          },
+          py::arg("q"), py::arg("v"), py::arg("a"))
+      .def(
           "integrate_configuration",
           [](const Robot &self, const Eigen::VectorXd &q,
              const Eigen::VectorXd &v, const double dt) {
