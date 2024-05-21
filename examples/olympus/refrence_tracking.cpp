@@ -14,9 +14,7 @@
 #include "robotoc/cost/com_cost.hpp"
 #include "robotoc/cost/configuration_space_cost.hpp"
 #include "robotoc/cost/cost_function.hpp"
-#include "robotoc/cost/periodic_com_ref.hpp"
-#include "robotoc/cost/periodic_swing_foot_ref.hpp"
-#include "robotoc/cost/task_space_3d_cost.hpp"
+#include "robotoc/cost/trajectory_ref.hpp"
 #include "robotoc/ocp/ocp.hpp"
 #include "robotoc/planner/contact_sequence.hpp"
 #include "robotoc/robot/robot.hpp"
@@ -24,8 +22,6 @@
 #include "robotoc/solver/solver_options.hpp"
 #include "robotoc/sto/sto_constraints.hpp"
 #include "robotoc/sto/sto_cost_function.hpp"
-
-#include "robotoc/utils/ocp_benchmarker.hpp"
 
 int main(int argc, char *argv[]) {
   robotoc::RobotModelInfo model_info;
@@ -66,6 +62,7 @@ int main(int argc, char *argv[]) {
   q_standing(6) = 1.0;
   Eigen::VectorXd q_ref = q_standing;
   q_ref.head(3).noalias() += jump_length;
+
   Eigen::VectorXd q_weight(Eigen::VectorXd::Zero(robot.dimv()));
   q_weight << 1.0, 0, 0, 1.0, 1.0, 1.0, 0.001, 0.001, 0.001, 0.001, 0.001,
       0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001;
@@ -79,10 +76,15 @@ int main(int argc, char *argv[]) {
   Eigen::VectorXd dv_weight_impact =
       Eigen::VectorXd::Constant(robot.dimv(), 1.0e-06);
   auto config_cost = std::make_shared<robotoc::ConfigurationSpaceCost>(robot);
-  config_cost->set_q_ref(q_ref);
+  robotoc::TrajectoryRef::Traj ref_traj;
+  ref_traj.push_back(robotoc::TrajectoryRef::StageTraj(10, q_ref));
+  ref_traj.push_back(robotoc::TrajectoryRef::StageTraj(10, q_ref));
+  ref_traj.push_back(robotoc::TrajectoryRef::StageTraj(10, q_ref));
+  auto ref = std::make_shared<robotoc::TrajectoryRef>(robot, ref_traj);
+  config_cost->set_ref(ref);
   config_cost->set_q_weight(q_weight);
   config_cost->set_q_weight_terminal(q_weight);
-  // config_cost->set_q_weight_impact(q_weight_impact);
+  //config_cost->set_q_weight_impact(q_weight_impact);
   config_cost->set_v_weight(v_weight);
   config_cost->set_v_weight_terminal(v_weight);
   config_cost->set_v_weight_impact(v_weight_impact);
@@ -192,8 +194,10 @@ int main(int argc, char *argv[]) {
   ocp_solver.setSolution("f", f_init);
   ocp_solver.discretize(t);
   ocp_solver.initConstraints();
+  std::cout << "3" << std::endl;
   std::cout << "Initial KKT error: " << ocp_solver.KKTError(t, q, v)
             << std::endl;
+  std::cout << "4" << std::endl;
   ocp_solver.solve(t, q, v);
   std::cout << "KKT error after convergence: " << ocp_solver.KKTError(t, q, v)
             << std::endl;

@@ -33,6 +33,5 @@ macro(add_example EXAMPLE)
 endmacro()
 
 # Add examples
+add_example(refrence_tracking)
 add_example(jump_sto_open_chain)
-add_example(stand)
-add_example(test_derivatives)

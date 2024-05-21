@@ -3,63 +3,68 @@
 
 #include "Eigen/Core"
 
-#include "robotoc/robot/robot.hpp"
 #include "robotoc/ocp/grid_info.hpp"
-
+#include "robotoc/ocp/time_discretization.hpp"
+#include "robotoc/robot/robot.hpp"
 
 namespace robotoc {
 
 ///
-/// @class ConfigurationSpaceRefBase 
-/// @brief Base class of the configuration. 
+/// @class ConfigurationSpaceRefBase
+/// @brief Base class of the configuration.
 ///
 class ConfigurationSpaceRefBase {
 public:
   ///
-  /// @brief Default constructor. 
+  /// @brief Default constructor.
   ///
   ConfigurationSpaceRefBase() {}
 
   ///
-  /// @brief Destructor. 
+  /// @brief Destructor.
   ///
   virtual ~ConfigurationSpaceRefBase() {}
 
   ///
-  /// @brief Default copy constructor. 
+  /// @brief Default copy constructor.
   ///
-  ConfigurationSpaceRefBase(const ConfigurationSpaceRefBase&) = default;
+  ConfigurationSpaceRefBase(const ConfigurationSpaceRefBase &) = default;
 
   ///
-  /// @brief Default copy operator. 
+  /// @brief Default copy operator.
   ///
-  ConfigurationSpaceRefBase& operator=(const ConfigurationSpaceRefBase&) = default;
+  ConfigurationSpaceRefBase &
+  operator=(const ConfigurationSpaceRefBase &) = default;
 
   ///
-  /// @brief Default move constructor. 
+  /// @brief Default move constructor.
   ///
-  ConfigurationSpaceRefBase(ConfigurationSpaceRefBase&&) noexcept = default;
+  ConfigurationSpaceRefBase(ConfigurationSpaceRefBase &&) noexcept = default;
 
   ///
-  /// @brief Default move assign operator. 
+  /// @brief Default move assign operator.
   ///
-  ConfigurationSpaceRefBase& operator=(ConfigurationSpaceRefBase&&) noexcept = default;
+  ConfigurationSpaceRefBase &
+  operator=(ConfigurationSpaceRefBase &&) noexcept = default;
 
   ///
-  /// @brief Computes the reference configuration. 
+  /// @brief Computes the reference configuration.
   /// @param[in] robot Robot model.
   /// @param[in] grid_info Grid info.
   /// @param[in] q_ref Reference position. Size is Robot::dimq().
   ///
-  virtual void updateRef(const Robot& robot, const GridInfo& grid_info,
-                         Eigen::VectorXd& q_ref) const = 0;
+  virtual void updateRef(const Robot &robot, const GridInfo &grid_info,
+                         Eigen::VectorXd &q_ref) const = 0;
 
   ///
-  /// @brief Checks wheather the cost is active or not at the specified time. 
+  /// @brief Checks wheather the cost is active or not at the specified time.
   /// @param[in] grid_info Grid info.
   /// @return true if the cost is active at time t. false if not.
   ///
-  virtual bool isActive(const GridInfo& grid_info) const = 0;
+  virtual bool isActive(const GridInfo &grid_info) const = 0;
+
+  virtual void discretize(const Robot &robot,
+                          const TimeDiscretization &time_diecretization) {}
 };
 
 } // namespace robotoc

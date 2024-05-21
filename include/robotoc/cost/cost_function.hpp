@@ -285,6 +285,8 @@ public:
   ///
   std::vector<std::string> getCostComponentList() const;
 
+  void discretize(const Robot& robot, const TimeDiscretization& time_discretization);
+
   ///
   /// @brief Displays the cost function onto a ostream.
   ///

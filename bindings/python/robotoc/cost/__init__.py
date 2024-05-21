@@ -14,3 +14,4 @@ from .periodic_swing_foot_ref import *
 from .periodic_com_ref import *
 from .discrete_time_swing_foot_ref import *
 from .discrete_time_com_ref import *
+#from .trajectory_ref import *

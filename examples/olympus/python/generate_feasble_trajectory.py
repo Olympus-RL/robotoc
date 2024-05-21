@@ -82,9 +82,7 @@ def generate_feaseble_trajectory(robot,configuration: List[NDArray],dts: List[fl
             residual_ID = u_virtual - J_c.T @ F_c_world 
             residual_ID[6:] -= u
 
-            print("residual: ", np.linalg.norm(residual_ID))
             residual_FC = (A_friction_cone @ res.x - b_friction_cone).clip(min=0)
-            print("residual_FC: ", np.linalg.norm(residual_FC))
 
             s_t = robotoc.SplitSolution(robot)
             s_t.q = q
