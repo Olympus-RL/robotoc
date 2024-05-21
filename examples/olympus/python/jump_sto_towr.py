@@ -36,8 +36,8 @@ robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
 robot.set_joint_effort_limit(np.full(robot.dimv()-6, 24.8))
 
 dt = 0.01
-jump_length = np.array([1.5, 0, 0])
-take_off_duration = 1.0
+jump_length = np.array([3.5, 0, 0])
+take_off_duration = 1.2
 flight_duration = 0.20
 touch_down_duration = 0.5
 t0 = 0.
@@ -225,7 +225,7 @@ ocp = robotoc.OCP(robot=robot, cost=cost, constraints=constraints,
 solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 0.1
 solver_options.max_dt_mesh = T/N 
-solver_options.max_iter = 800
+solver_options.max_iter = 1500
 solver_options.nthreads = 4
 solver_options.initial_sto_reg_iter = 0
 solver_options.enable_line_search=False
@@ -321,5 +321,6 @@ F = ocp_solver.get_solution('f', 'WORLD')
 viewer.display(ocp_solver.get_time_discretization(), 
                ocp_solver.get_solution('q'), 
                ocp_solver.get_solution('f', 'WORLD'))
+
 
 
