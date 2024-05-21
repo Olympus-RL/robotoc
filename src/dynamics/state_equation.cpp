@@ -72,6 +72,7 @@ void correctLinearizeStateEquation(const Robot& robot, const double dt,
                                    SplitKKTMatrix& kkt_matrix, 
                                    SplitKKTResidual& kkt_residual) {
   assert(dt > 0);
+  return;
   if (!data.hasFloatingBase()) return;
 
   data.se3_jac_inverse.compute(data.Fqq_prev, data.Fqq_prev_inv);
@@ -88,6 +89,7 @@ void correctLinearizeStateEquation(const Robot& robot, const double dt,
 
 
 void correctCostateDirection(StateEquationData& data, SplitDirection& d)  {
+  return;
   if (!data.hasFloatingBase()) return;
 
   data.Fq_tmp.noalias() = data.Fqq_prev_inv.transpose() * d.dlmdgmm.template head<6>();

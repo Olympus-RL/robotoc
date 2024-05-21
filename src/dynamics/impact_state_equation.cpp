@@ -60,7 +60,9 @@ void correctLinearizeImpactStateEquation(const Robot& robot,
                                          StateEquationData& data, 
                                          SplitKKTMatrix& kkt_matrix, 
                                          SplitKKTResidual& kkt_residual) {
+  return;                                        
   if (!data.hasFloatingBase()) return;
+
 
   data.se3_jac_inverse.compute(data.Fqq_prev, data.Fqq_prev_inv);
   robot.dSubtractConfiguration_dq0(s.q, s_next.q, data.Fqq_prev);
