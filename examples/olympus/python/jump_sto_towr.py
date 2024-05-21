@@ -19,34 +19,34 @@ model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte
 robot = robotoc.Robot(model_info)
 robot.set_gravity(-3.72)
 robot.set_lower_joint_position_limit(np.array([
-    -20, -10, -0.0,
-    -20, -90, -0.0,
-    -20, -0, -220,
-    -20, -10, -220,
+    -20, -10, -10.0,
+    -20, -90, -10.0,
+    -20, -10, -120,
+    -20, -10, -120,
 ])*np.pi/180.0)
 robot.set_upper_joint_position_limit(np.array([
-    20,  90, 220,
-    20,  0,  220,
-    20,  90, 0.0,
-    20,  90, 0.0,
+    20,  90, 120,
+    20,  10,  120,
+    20,  90, 10.0,
+    20,  90, 10.0,
 ])*np.pi/180.0)
 
 
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
-robot.set_joint_effort_limit(np.full(robot.dimv()-6, 30.0))
+robot.set_joint_effort_limit(np.full(robot.dimv()-6, 24.8))
 
-dt = 0.04
-jump_length = np.array([0.8, 0, 0])
-take_off_duration = 0.6
+dt = 0.01
+jump_length = np.array([1.5, 0, 0])
+take_off_duration = 1.0
 flight_duration = 0.20
-touch_down_duration = take_off_duration
+touch_down_duration = 0.5
 t0 = 0.
 
-q_standing = np.array([0., 0., 0.45, 0., 0., 0., 1.0, 
-                         0.0,  0.5,  0.9,  #back left
-                        -0.0, -0.5,  0.9, #back right
-                        -0.0,  0.5, -0.9, #front left
-                         0.0,  0.5, -0.9]) #front right
+q_standing = np.array([0., 0., 0.5, 0., 0., 0., 1.0, 
+                         0.0,  0.2,  0.4,  #back left
+                        -0.0, -0.2,  0.4, #back right
+                        -0.0,  0.2, -0.4, #front left
+                         0.0,  0.2, -0.4]) #front right
 
 
 # Create the contact sequence
@@ -87,7 +87,7 @@ contact_status_standing.set_friction_coefficients(friction_coefficients)
 contact_sequence.init(contact_status_standing)
 
 contact_status_flying = robot.create_contact_status()
-contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=True)
+contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=False)
 
 contat_position_landing = copy.deepcopy(contact_positions_standing)
 contact_positions_standing['FrontLeft_paw'] += jump_length
@@ -95,7 +95,7 @@ contact_positions_standing['BackLeft_paw'] += jump_length
 contact_positions_standing['FrontRight_paw'] += jump_length
 contact_positions_standing['BackRight_paw'] += jump_length
 contact_status_standing.set_contact_placements(contact_positions_standing)
-contact_sequence.push_back(contact_status_standing, t0+take_off_duration+flight_duration, sto=True)
+contact_sequence.push_back(contact_status_standing, t0+take_off_duration+flight_duration, sto=False)
 
 # you can check the contact sequence via 
 # print(contact_sequence)
@@ -156,18 +156,19 @@ for i in range(len(td)):
 cost = robotoc.CostFunction()
 print(1)
 refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
+q_land = q_traj_landing[-1]
 print(2)
-q_weight = 10*np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 
+q_weight = 10*np.array([1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 
                         0.01, 0.01, 0.01, 
                         0.01, 0.01, 0.01,
                         0.01, 0.01, 0.01,
                         0.01, 0.01, 0.01])
 q_weight_terminal = np.zeros(robot.dimv())
-q_weight_terminal[:2] = 10*np.array([1.0, 1.0])
+q_weight_terminal[:2] = 1000*np.array([1.0, 1.0])
 q_weight_terminal[2] = 10
 q_weight_terminal[3:6] = 0.1*np.array([1.0, 1.0, 1.0])
 q_weight_terminal[6:] = 0.1*np.ones(robot.dimv()-6)
-v_weight = np.full(robot.dimv(), 1.0)
+v_weight = np.full(robot.dimv(), 1.0e-6)
 a_weight = np.full(robot.dimv(), 1.0e-06)
 q_weight_impact = np.array([0., 0., 0., 0., 0., 0., 
                         0.1, 0.1, 0.1, 
@@ -175,15 +176,16 @@ q_weight_impact = np.array([0., 0., 0., 0., 0., 0.,
                         0.1, 0.1, 0.1,
                         0.1, 0.1, 0.1])
 v_weight_impact = np.full(robot.dimv(), 1.0)
-dv_weight_impact = np.full(robot.dimv(), 1.0e-06)
+dv_weight_impact = np.full(robot.dimv(), 1.0e3)
 config_cost = robotoc.ConfigurationSpaceCost(robot)
 config_cost.set_ref(refrence_traj)
+#config_cost.set_q_ref(q_land)
 config_cost.set_q_weight(q_weight)
 config_cost.set_q_weight_terminal(q_weight)
 config_cost.set_q_weight_impact(q_weight_impact)
 #config_cost.set_v_weight(v_weight)
 config_cost.set_v_weight_terminal(v_weight)
-config_cost.set_v_weight_impact(v_weight_impact)
+#config_cost.set_v_weight_impact(v_weight_impact)
 config_cost.set_dv_weight_impact(dv_weight_impact)
 config_cost.set_a_weight(a_weight)
 cost.add("config_cost", config_cost)
@@ -192,7 +194,7 @@ cost.add("config_cost", config_cost)
 
 
 # Create the constraints
-constraints           = robotoc.Constraints(barrier_param=1.0e-03, fraction_to_boundary_rule=0.85)
+constraints           = robotoc.Constraints(barrier_param=1.0e-03, fraction_to_boundary_rule=0.995)
 joint_position_lower  = robotoc.JointPositionLowerLimit(robot)
 joint_position_upper  = robotoc.JointPositionUpperLimit(robot)
 joint_velocity_lower  = robotoc.JointVelocityLowerLimit(robot)
@@ -211,9 +213,9 @@ constraints.add("friction_cone", friction_cone)
 # Create the STO cost function. This is necessary even empty one to construct an OCP with a STO problem
 sto_cost = robotoc.STOCostFunction()
 # Create the STO constraints 
-sto_constraints = robotoc.STOConstraints(minimum_dwell_times=[take_off_duration*0.7, flight_duration*0.3,touch_down_duration*0.7],
+sto_constraints = robotoc.STOConstraints(minimum_dwell_times=[0.10, 0.15,touch_down_duration*0.7],
                                             barrier_param=1.0e-03, 
-                                            fraction_to_boundary_rule=0.95)
+                                            fraction_to_boundary_rule=0.995)
 
 # Create the OCP with the STO problem
 ocp = robotoc.OCP(robot=robot, cost=cost, constraints=constraints, 
@@ -226,8 +228,9 @@ solver_options.max_dt_mesh = T/N
 solver_options.max_iter = 800
 solver_options.nthreads = 4
 solver_options.initial_sto_reg_iter = 0
-solver_options.enable_line_search=True
-#solver_options.max_dts_riccati = 0.05
+solver_options.enable_line_search=False
+solver_options.enable_benchmark=True
+solver_options.max_dts_riccati = 0.05
 ocp_solver = robotoc.OCPSolver(ocp=ocp, solver_options=solver_options)
 t=t0
 ocp_solver.discretize(t)
@@ -320,6 +323,3 @@ viewer.display(ocp_solver.get_time_discretization(),
                ocp_solver.get_solution('f', 'WORLD'))
 
 
-viewer.display(ocp_solver.get_time_discretization(), 
-               ocp_solver.get_solution('q'), 
-               ocp_solver.get_solution('f', 'WORLD'))
