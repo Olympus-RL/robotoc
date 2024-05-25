@@ -103,7 +103,7 @@ void computeInitialStateDirection(const Robot& robot, const Eigen::VectorXd& q0,
                                   const StateEquationData& data, 
                                   SplitDirection& d0) {
   robot.subtractConfiguration(q0, s0.q, d0.dq());
-  if (robot.hasFloatingBase()) {
+  if (robot.hasFloatingBase()) { //this might be wrong should be checked
     d0.dq().template head<6>().noalias() 
         = - data.Fqq_prev_inv * d0.dq().template head<6>();
   }
