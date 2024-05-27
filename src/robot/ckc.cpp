@@ -12,7 +12,8 @@
 namespace robotoc {
 
 CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
-    : info_(info), dimq_(model.nq), dimv_(model.nv) {
+    : info_(info), dimq_(model.nq), dimv_(model.nv), jXf_0_(SE3::Identity()),
+      jXf_1_(SE3::Identity()) {
   if (!model.existFrame(info.frame_0)) {
     throw ::std::invalid_argument("[CKC] invalid argument: frame_0 '" +
                                   info.frame_0 + "' does not exit!");
@@ -51,6 +52,10 @@ CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
       submodel_.getFrameId(info.frame_0); // update the frae idx with the sub
                                           // model since they might have changed
   frame_1_idx_ = submodel_.getFrameId(info.frame_1);
+  jXf_0_ = model.frames[frame_0_idx_].placement;
+  jXf_1_ = model.frames[frame_1_idx_].placement;
+  joint_0_idx_ = model.frames[frame_0_idx_].parent;
+  joint_1_idx_ = model.frames[frame_1_idx_].parent;
 
   v_frame_.setZero();
   a_frame_.setZero();
@@ -64,6 +69,35 @@ CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
   frame_a_partial_dv_.setZero();
   frame_a_partial_da_.setZero();
   J_frame_.setZero();
+  Jc_.setZero();
+}
+
+void CKC::computeJointForceFromConstraintForce(
+    const Eigen::Vector2d &g,
+    pinocchio::container::aligned_vector<pinocchio::Force> &joint_forces) {
+  Eigen::Vector3d g_3d_world = Eigen::Vector3d::Zero();
+  g_3d_world.head<2>() = g;
+  Eigen::Vector3d g_3d_local =
+      subdata_.oMf[frame_0_idx_].rotation().transpose() * g_3d_world;
+  joint_forces[joint_0_idx_] +=
+      jXf_0_.act(pinocchio::Force(g_3d_local, Eigen::Vector3d::Zero()));
+  g_3d_local = subdata_.oMf[frame_1_idx_].rotation().transpose() * g_3d_world;
+  joint_forces[joint_1_idx_] += jXf_1_.act(pinocchio::Force(
+      -g_3d_local, Eigen::Vector3d::Zero())); // minus sign on force 2
+}
+
+void CKC::computeGeneralizedForceFromConstraintForce(const Eigen::Vector2d &g,
+                                                     Eigen::VectorXd &Q) {
+  assert(Q.size() == dimv_);
+
+  // Note to be honest I dont know when and when not to use .noalias()
+  pinocchio::getFrameJacobian(submodel_, subdata_, frame_0_idx_,
+                              pinocchio::LOCAL_WORLD_ALIGNED, J_frame_);
+  Jc_.noalias() = J_frame_.template topRows<2>();
+  pinocchio::getFrameJacobian(submodel_, subdata_, frame_1_idx_,
+                              pinocchio::LOCAL_WORLD_ALIGNED, J_frame_);
+  Jc_.noalias() -= J_frame_.template topRows<2>();
+  Q.segment<4>(start_v_idx_).noalias() = Jc_.transpose() * g;
 }
 
 void CKC::setBaumgarteGains(const double baumgarte_position_gain,

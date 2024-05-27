@@ -21,6 +21,7 @@ class CKC {
 public:
   using Matrix64d = Eigen::Matrix<double, 6, 4>;
   using Matrix34d = Eigen::Matrix<double, 3, 4>;
+  using Matrix24d = Eigen::Matrix<double, 2, 4>;
 
   ///
   /// @brief Construct a point contact model.
@@ -72,8 +73,18 @@ public:
   /// ancestor frame frame.
   /// @param[out] Q The generalized constraint force
   ///
+
+  void computeJointForceFromConstraintForce(
+      const Eigen::Vector2d &contact_force,
+      pinocchio::container::aligned_vector<pinocchio::Force> &joint_forces);
+
   void computeGeneralizedForceFromConstraintForce(
-      const Eigen::Vector2d &constraint_force, Eigen::VectorXd &Q) const;
+      const Eigen::Vector2d &constraint_force, Eigen::VectorXd &Q);
+
+  template <typename MatrixType1>
+  void
+  computeConstrsaintForceDerivative(const Eigen::Vector2d &g,
+                                    const Eigen::MatrixBase<MatrixType1> &dQdq);
 
   ///
   /// @brief Computes the residual of the contact constraints considered by the
@@ -143,7 +154,8 @@ public:
 private:
   CKCInfo info_;
 
-  int dimq_, dimv_, start_q_idx_, start_v_idx_, frame_0_idx_, frame_1_idx_;
+  int dimq_, dimv_, start_q_idx_, start_v_idx_, frame_0_idx_, frame_1_idx_,
+      joint_0_idx_, joint_1_idx_;
   // classical velocity of frame
   ::pinocchio::Model submodel_;
   ::pinocchio::Data subdata_;
@@ -151,7 +163,9 @@ private:
   Eigen::Matrix3d v_linear_skew_, v_angular_skew_, alpha_skew_, r_skew_;
   Matrix64d J_frame_, J_frame_dot_, frame_v_partial_dq_, frame_a_partial_dq_,
       frame_a_partial_dv_, frame_a_partial_da_;
+  Matrix24d Jc_;
   Matrix34d vel_partial_dq_;
+  robotoc::SE3 jXf_0_, jXf_1_;
 };
 
 } // namespace robotoc

@@ -12,6 +12,7 @@
 #include "pinocchio/multibody/model.hpp"
 #include "pinocchio/spatial/force.hpp"
 
+#include "robotoc/robot/ckc.hpp"
 #include "robotoc/robot/contact_status.hpp"
 #include "robotoc/robot/impact_status.hpp"
 #include "robotoc/robot/point_contact.hpp"
@@ -31,6 +32,7 @@ namespace robotoc {
 class Robot {
 public:
   using Vector6d = Eigen::Matrix<double, 6, 1>;
+  using Vector2d = Eigen::Vector2d;
 
   ///
   /// @brief Constructs a robot model according to the input model info.
@@ -575,6 +577,8 @@ public:
   void setImpactForces(const ImpactStatus &impact_status,
                        const std::vector<Vector6d> &f);
 
+  void setCKCForces(const std::vector<Vector2d> &g);
+
   ///
   /// @brief Computes inverse dynamics, i.e., generalized torques corresponding
   /// for given configuration, velocity, acceleration, and contact forces.
@@ -945,12 +949,18 @@ private:
   pinocchio::Model model_, impact_model_;
   pinocchio::Data data_, impact_data_;
   pinocchio::container::aligned_vector<pinocchio::Force> fjoint_;
+  pinocchio::container::aligned_vector<pinocchio::Force> gjoint_;
+  
+
+  Eigen::VectorXd Q_ckcs_;
   Eigen::MatrixXd dimpact_dv_;
   // Contact models
   aligned_vector<PointContact> point_contacts_;
   aligned_vector<SurfaceContact> surface_contacts_;
+  aligned_vector<CKC> ckcs_;
   // Robot model variables
-  int dimq_, dimv_, dimu_, dim_passive_, max_dimf_, max_num_contacts_;
+  int dimq_, dimv_, dimu_, dim_passive_, max_dimf_, max_num_contacts_, dimg_,
+      num_ckcs_, max_dimC_;
   RobotProperties properties_;
   Eigen::VectorXd joint_effort_limit_, joint_velocity_limit_,
       lower_joint_position_limit_, upper_joint_position_limit_;

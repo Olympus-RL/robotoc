@@ -6,16 +6,16 @@ namespace robotoc {
 
 Robot::Robot(const RobotModelInfo &info)
     : info_(info), model_(), impact_model_(), data_(), impact_data_(),
-      fjoint_(), dimpact_dv_(), point_contacts_(), surface_contacts_(),
-      dimq_(0), dimv_(0), dimu_(0), dim_passive_(0), max_dimf_(0),
-      max_num_contacts_(0), properties_(), joint_effort_limit_(),
+      fjoint_(), Q_ckcs_(), dimpact_dv_(), point_contacts_(),
+      surface_contacts_(), dimq_(0), dimv_(0), dimu_(0), dim_passive_(0),
+      max_dimf_(0), max_num_contacts_(0), properties_(), joint_effort_limit_(),
       joint_velocity_limit_(), lower_joint_position_limit_(),
       upper_joint_position_limit_() {
   switch (info.base_joint_type) {
   case BaseJointType::FloatingBase:
     pinocchio::urdf::buildModel(info.urdf_path,
                                 pinocchio::JointModelFreeFlyer(), model_);
-    dim_passive_ = 6;
+    dim_passive_ = 6; // this should be changed when integrating floating base
     break;
   case BaseJointType::FixedBase:
     pinocchio::urdf::buildModel(info.urdf_path, model_);
@@ -39,21 +39,29 @@ Robot::Robot(const RobotModelInfo &info)
   for (const auto &e : info.surface_contacts) {
     surface_contacts_.push_back(SurfaceContact(model_, e));
   }
+  ckcs_.clear();
+  for (const auto &e : info.ckcs) {
+    ckcs_.push_back(CKC(model_, e));
+  }
   dimq_ = model_.nq;
   dimv_ = model_.nv;
   dimu_ = model_.nv - dim_passive_;
   max_dimf_ = 3 * point_contacts_.size() + 6 * surface_contacts_.size();
   max_num_contacts_ = point_contacts_.size() + surface_contacts_.size();
-  data_.JMinvJt.resize(max_dimf_, max_dimf_);
+  dimg_ = 2 * ckcs_.size();
+  num_ckcs_ = ckcs_.size();
+  max_dimC_ = dimg_ + max_dimf_;
+  data_.JMinvJt.resize(max_dimC_, max_dimC_);
   data_.JMinvJt.setZero();
-  data_.sDUiJt.resize(model_.nv, max_dimf_);
+  data_.sDUiJt.resize(model_.nv, max_dimC_);
   data_.sDUiJt.setZero();
-  impact_data_.JMinvJt.resize(max_dimf_, max_dimf_);
+  impact_data_.JMinvJt.resize(max_dimC_, max_dimC_);
   impact_data_.JMinvJt.setZero();
-  impact_data_.sDUiJt.resize(model_.nv, max_dimf_);
+  impact_data_.sDUiJt.resize(model_.nv, max_dimC_);
   impact_data_.sDUiJt.setZero();
   dimpact_dv_.resize(model_.nv, model_.nv);
   dimpact_dv_.setZero();
+  Q_ckcs_.resize(dimv_);
   initializeJointLimits();
 }
 
@@ -152,6 +160,13 @@ void Robot::setContactForces(const ContactStatus &contact_status,
       surface_contacts_[i].computeJointForceFromContactWrench(Vector6d::Zero(),
                                                               fjoint_);
     }
+  }
+}
+
+void Robot::setCKCForces(const std::vector<Vector2d> &g) {
+  assert(g.size() == num_ckcs_);
+  for (int i = 0; i < num_ckcs_; ++i) {
+    ckcs_[i].computeJointForceFromConstraintForce(g[i], fjoint_);
   }
 }
 

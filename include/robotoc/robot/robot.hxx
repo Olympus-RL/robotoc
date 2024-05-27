@@ -171,6 +171,9 @@ Robot::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
   pinocchio::updateFramePlacements(model_, data_);
   pinocchio::computeForwardKinematicsDerivatives(model_, data_, q, v, a);
   pinocchio::jacobianCenterOfMass(model_, data_, false);
+  for (int i = 0; i < num_ckcs_; i++) {
+    ckcs_[i].updateKinematics(q, v, a);
+  }
 }
 
 template <typename ConfigVectorType, typename TangentVectorType>
