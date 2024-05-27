@@ -207,6 +207,8 @@ int Robot::dimu() const { return dimu_; }
 
 int Robot::max_dimf() const { return max_dimf_; }
 
+int Robot::dimg() const { return dimg_; }
+
 int Robot::dim_passive() const { return dim_passive_; }
 
 bool Robot::hasFloatingBase() const {
@@ -216,6 +218,8 @@ bool Robot::hasFloatingBase() const {
 int Robot::maxNumContacts() const {
   return (maxNumPointContacts() + maxNumSurfaceContacts());
 }
+
+int Robot::numCKCs() const { return (num_ckcs_); }
 
 int Robot::maxNumPointContacts() const { return point_contacts_.size(); }
 

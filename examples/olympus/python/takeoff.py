@@ -262,7 +262,7 @@ if True:
         s_test.a = s_towr.a
         s_test.u = s_towr.u
         s_test.f = s_towr.f
-        s_test.set_f_stack()
+        s_test.set_gf_stack()
 
 ocp_solver.set_solution(test)
 ocp_solver.init_constraints()

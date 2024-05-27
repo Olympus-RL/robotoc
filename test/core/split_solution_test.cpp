@@ -2,43 +2,40 @@
 
 #include "Eigen/Core"
 
-#include "robotoc/robot/robot.hpp"
+#include "robotoc/core/split_solution.hpp"
 #include "robotoc/robot/contact_status.hpp"
 #include "robotoc/robot/impact_status.hpp"
-#include "robotoc/core/split_solution.hpp"
+#include "robotoc/robot/robot.hpp"
 
 #include "robot_factory.hpp"
-
 
 namespace robotoc {
 
 class SplitSolutionTest : public ::testing::Test {
 protected:
   virtual void SetUp() {
-    srand((unsigned int) time(0));
+    srand((unsigned int)time(0));
     dt = std::abs(Eigen::VectorXd::Random(1)[0]);
   }
 
-  virtual void TearDown() {
-  }
+  virtual void TearDown() {}
 
-  static void test(const Robot& robot);
-  static void test(const Robot& robot, const ContactStatus& contact_status);
-  static void test(const Robot& robot, const ImpactStatus& impact_status);
-  static void test(const Robot& robot, const ContactStatus& contact_status, 
-                   const ImpactStatus& impact_status);
-  static void test_isApprox(const Robot& robot, 
-                           const ContactStatus& contact_status, 
-                           const ImpactStatus& impact_status);
-  static void test_integrate(const Robot& robot, 
-                            const ContactStatus& contact_status, 
-                            const ImpactStatus& impact_status);
+  static void test(const Robot &robot);
+  static void test(const Robot &robot, const ContactStatus &contact_status);
+  static void test(const Robot &robot, const ImpactStatus &impact_status);
+  static void test(const Robot &robot, const ContactStatus &contact_status,
+                   const ImpactStatus &impact_status);
+  static void test_isApprox(const Robot &robot,
+                            const ContactStatus &contact_status,
+                            const ImpactStatus &impact_status);
+  static void test_integrate(const Robot &robot,
+                             const ContactStatus &contact_status,
+                             const ImpactStatus &impact_status);
 
   double dt;
 };
 
-
-void SplitSolutionTest::test(const Robot& robot) { 
+void SplitSolutionTest::test(const Robot &robot) {
   SplitSolution s(robot);
   EXPECT_EQ(s.q.size(), robot.dimq());
   EXPECT_EQ(s.v.size(), robot.dimv());
@@ -57,9 +54,8 @@ void SplitSolutionTest::test(const Robot& robot) {
   EXPECT_EQ(s.dims(), 0);
 }
 
-
-void SplitSolutionTest::test(const Robot& robot, 
-                             const ContactStatus& contact_status) { 
+void SplitSolutionTest::test(const Robot &robot,
+                             const ContactStatus &contact_status) {
   SplitSolution s(robot);
   s.setContactStatus(contact_status);
   EXPECT_EQ(s.q.size(), robot.dimq());
@@ -77,19 +73,16 @@ void SplitSolutionTest::test(const Robot& robot,
   EXPECT_EQ(s.xi_stack().size(), 0);
   EXPECT_EQ(s.dimf(), contact_status.dimf());
   EXPECT_EQ(s.dims(), 0);
-  for (int i=0; i<robot.maxNumContacts(); ++i) {
+  for (int i = 0; i < robot.maxNumContacts(); ++i) {
     EXPECT_EQ(s.isContactActive(i), contact_status.isContactActive(i));
     EXPECT_EQ(s.isContactActive()[i], contact_status.isContactActive(i));
   }
 
-  EXPECT_NO_THROW(
-    std::cout << s << std::endl;
-  );
+  EXPECT_NO_THROW(std::cout << s << std::endl;);
 }
 
-
-void SplitSolutionTest::test(const Robot& robot, 
-                             const ImpactStatus& impact_status) {
+void SplitSolutionTest::test(const Robot &robot,
+                             const ImpactStatus &impact_status) {
   SplitSolution s(robot);
   s.setSwitchingConstraintDimension(impact_status.dimf());
   EXPECT_EQ(s.q.size(), robot.dimq());
@@ -108,15 +101,12 @@ void SplitSolutionTest::test(const Robot& robot,
   EXPECT_EQ(s.dimf(), 0);
   EXPECT_EQ(s.dims(), impact_status.dimf());
 
-  EXPECT_NO_THROW(
-    std::cout << s << std::endl;
-  );
+  EXPECT_NO_THROW(std::cout << s << std::endl;);
 }
 
-
-void SplitSolutionTest::test(const Robot& robot, 
-                             const ContactStatus& contact_status,
-                             const ImpactStatus& impact_status) { 
+void SplitSolutionTest::test(const Robot &robot,
+                             const ContactStatus &contact_status,
+                             const ImpactStatus &impact_status) {
   SplitSolution s(robot);
   s.setContactStatus(contact_status);
   s.setSwitchingConstraintDimension(impact_status.dimf());
@@ -135,20 +125,17 @@ void SplitSolutionTest::test(const Robot& robot,
   EXPECT_EQ(s.xi_stack().size(), impact_status.dimf());
   EXPECT_EQ(s.dimf(), contact_status.dimf());
   EXPECT_EQ(s.dims(), impact_status.dimf());
-  for (int i=0; i<robot.maxNumContacts(); ++i) {
+  for (int i = 0; i < robot.maxNumContacts(); ++i) {
     EXPECT_EQ(s.isContactActive(i), contact_status.isContactActive(i));
     EXPECT_EQ(s.isContactActive()[i], contact_status.isContactActive(i));
   }
 
-  EXPECT_NO_THROW(
-    std::cout << s << std::endl;
-  );
+  EXPECT_NO_THROW(std::cout << s << std::endl;);
 }
 
-
-void SplitSolutionTest::test_isApprox(const Robot& robot, 
-                                      const ContactStatus& contact_status,
-                                      const ImpactStatus& impact_status) {
+void SplitSolutionTest::test_isApprox(const Robot &robot,
+                                      const ContactStatus &contact_status,
+                                      const ImpactStatus &impact_status) {
   auto s = SplitSolution::Random(robot, contact_status, impact_status);
   EXPECT_FALSE(s.q.isZero());
   EXPECT_FALSE(s.v.isZero());
@@ -202,8 +189,7 @@ void SplitSolutionTest::test_isApprox(const Robot& robot,
     EXPECT_FALSE(s.isApprox(s_ref));
     s_ref.nu_passive = s.nu_passive;
     EXPECT_TRUE(s.isApprox(s_ref));
-  }
-  else {
+  } else {
     s_ref.nu_passive.setRandom();
     EXPECT_TRUE(s.isApprox(s_ref));
   }
@@ -211,19 +197,18 @@ void SplitSolutionTest::test_isApprox(const Robot& robot,
     s_ref.f_stack().setRandom();
     EXPECT_FALSE(s.isApprox(s_ref));
     s_ref.f_stack() = s.f_stack();
-    s_ref.set_f_vector();
+    s_ref.set_gf_vector();
     EXPECT_TRUE(s.isApprox(s_ref));
     s_ref.mu_stack().setRandom();
     EXPECT_FALSE(s.isApprox(s_ref));
     s_ref.mu_stack() = s.mu_stack();
-    s_ref.set_mu_vector();
+    s_ref.set_rhomu_vector();
     EXPECT_TRUE(s.isApprox(s_ref));
-  }
-  else {
+  } else {
     s_ref.f_stack().setRandom();
-    s_ref.set_f_vector();
+    s_ref.set_gf_vector();
     s_ref.mu_stack().setRandom();
-    s_ref.set_mu_vector();
+    s_ref.set_rhomu_vector();
     EXPECT_TRUE(s.isApprox(s_ref));
   }
   if (s.dims() > 0) {
@@ -231,8 +216,7 @@ void SplitSolutionTest::test_isApprox(const Robot& robot,
     EXPECT_FALSE(s.isApprox(s_ref));
     s_ref.xi_stack() = s.xi_stack();
     EXPECT_TRUE(s.isApprox(s_ref));
-  }
-  else {
+  } else {
     s_ref.xi_stack().setRandom();
     EXPECT_TRUE(s.isApprox(s_ref));
   }
@@ -249,12 +233,12 @@ void SplitSolutionTest::test_isApprox(const Robot& robot,
   EXPECT_TRUE(s.isApprox(s_ref));
 }
 
-
-void SplitSolutionTest::test_integrate(const Robot& robot, 
-                                       const ContactStatus& contact_status,
-                                       const ImpactStatus& impact_status) {
+void SplitSolutionTest::test_integrate(const Robot &robot,
+                                       const ContactStatus &contact_status,
+                                       const ImpactStatus &impact_status) {
   SplitSolution s = SplitSolution::Random(robot, contact_status, impact_status);
-  const SplitDirection d = SplitDirection::Random(robot, contact_status, impact_status);
+  const SplitDirection d =
+      SplitDirection::Random(robot, contact_status, impact_status);
   SplitSolution s_ref = s;
   const double step_size = 0.3;
   s.integrate(robot, step_size, d);
@@ -271,16 +255,15 @@ void SplitSolutionTest::test_integrate(const Robot& robot,
   }
   if (contact_status.hasActiveContacts()) {
     s_ref.f_stack().noalias() += step_size * d.df();
-    s_ref.set_f_vector();
+    s_ref.set_gf_vector();
     s_ref.mu_stack().noalias() += step_size * d.dmu();
-    s_ref.set_mu_vector();
+    s_ref.set_rhomu_vector();
   }
   if (impact_status.hasActiveImpact()) {
     s_ref.xi_stack().noalias() += step_size * d.dxi();
   }
   EXPECT_TRUE(s.isApprox(s_ref));
 }
-
 
 TEST_F(SplitSolutionTest, fixedBase) {
   auto robot_without_contacts = testhelper::CreateRobotManipulator();
@@ -298,7 +281,6 @@ TEST_F(SplitSolutionTest, fixedBase) {
   test(robot, impact_status);
   test(robot, contact_status, impact_status);
 }
-
 
 TEST_F(SplitSolutionTest, floatingBase) {
   auto robot_without_contacts = testhelper::CreateQuadrupedalRobot();
@@ -322,7 +304,6 @@ TEST_F(SplitSolutionTest, floatingBase) {
   test(robot, impact_status);
   test(robot, contact_status, impact_status);
 }
-
 
 TEST_F(SplitSolutionTest, humanoidRobot) {
   auto robot_without_contacts = testhelper::CreateHumanoidRobot();
@@ -349,8 +330,7 @@ TEST_F(SplitSolutionTest, humanoidRobot) {
 
 } // namespace robotoc
 
-
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

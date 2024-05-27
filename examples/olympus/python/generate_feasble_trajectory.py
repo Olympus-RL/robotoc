@@ -89,7 +89,7 @@ def generate_feaseble_trajectory(robot,configuration: List[NDArray],dts: List[fl
             s_t.v = v
             s_t.u = u
             s_t.f = F_b
-            s_t.set_f_stack()
+            s_t.set_gf_stack()
             sol.append(s_t)
             
             s_t.a = a

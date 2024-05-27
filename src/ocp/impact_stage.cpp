@@ -128,6 +128,7 @@ void ImpactStage::expandPrimal(const GridInfo& grid_info, OCPData& data,
   const auto& impact_status = contact_sequence_->impactStatus(grid_info.impact_index);
   d.setContactDimension(impact_status.dimf());
   d.setSwitchingConstraintDimension(0);
+  d.setImpact();
   expandImpactDynamicsPrimal(data.contact_dynamics_data, d);
   constraints_->expandSlackAndDual(impact_status, data.constraints_data, d);
 }

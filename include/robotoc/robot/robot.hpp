@@ -756,6 +756,8 @@ public:
   ///
   int max_dimf() const;
 
+  int dimg() const;
+
   ///
   /// @brief Returns the dimensiton of the generalized torques corresponding to
   /// the passive joints.
@@ -775,6 +777,8 @@ public:
   /// @return The maximum number of the contacts.
   ///
   int maxNumContacts() const;
+
+  int numCKCs() const;
 
   ///
   /// @brief Returns the maximum number of the point contacts.
@@ -950,7 +954,6 @@ private:
   pinocchio::Data data_, impact_data_;
   pinocchio::container::aligned_vector<pinocchio::Force> fjoint_;
   pinocchio::container::aligned_vector<pinocchio::Force> gjoint_;
-  
 
   Eigen::VectorXd Q_ckcs_;
   Eigen::MatrixXd dimpact_dv_;
