@@ -19,24 +19,22 @@ void compute_finite_diff(pinocchio::Model &model, pinocchio::Data &data,
                          Eigen::MatrixXd &baumgarte_partial_dq_approx,
                          Eigen::MatrixXd &baumgarte_partial_dv_approx,
                          Eigen::MatrixXd &baumgarte_partial_da_approx) {
-  Eigen::Vector3d baumgarte_residual = Eigen::Vector3d::Zero();
-  Eigen::Vector3d buamgarte_residual_perturbed_q,
+  Eigen::Vector2d baumgarte_residual = Eigen::Vector2d::Zero();
+  Eigen::Vector2d buamgarte_residual_perturbed_q,
       buamgarte_residual_perturbed_v, buamgarte_residual_perturbed_a;
   Eigen::VectorXd q_perturbed(model.nq), v_perturbed(model.nv),
       a_perturbed(model.nv);
   float finite_diff = 1e-4;
 
-  pinocchio::forwardKinematics(model, data, q, v, a);
-  pinocchio::updateFramePlacements(model, data);
-  ckc.computeBaumgarteResidual(model, data, baumgarte_residual);
+  ckc.updateKinematics(q, v, a);
+  ckc.computeBaumgarteResidual(baumgarte_residual);
 
   for (int i = 0; i < model.nv; i++) {
     Eigen::VectorXd dq = Eigen::VectorXd::Zero(model.nv);
     dq(i) = finite_diff;
     pinocchio::integrate(model, q, dq, q_perturbed);
-    pinocchio::forwardKinematics(model, data, q_perturbed, v, a);
-    pinocchio::updateFramePlacements(model, data);
-    ckc.computeBaumgarteResidual(model, data, buamgarte_residual_perturbed_q);
+    ckc.updateKinematics(q_perturbed, v, a);
+    ckc.computeBaumgarteResidual(buamgarte_residual_perturbed_q);
     baumgarte_partial_dq_approx.col(i) =
         (buamgarte_residual_perturbed_q - baumgarte_residual) / finite_diff;
   }
@@ -44,9 +42,8 @@ void compute_finite_diff(pinocchio::Model &model, pinocchio::Data &data,
   for (int i = 0; i < model.nv; i++) {
     v_perturbed = v;
     v_perturbed(i) += finite_diff;
-    pinocchio::forwardKinematics(model, data, q, v_perturbed, a);
-    pinocchio::updateFramePlacements(model, data);
-    ckc.computeBaumgarteResidual(model, data, buamgarte_residual_perturbed_v);
+    ckc.updateKinematics(q, v_perturbed, a);
+    ckc.computeBaumgarteResidual(buamgarte_residual_perturbed_v);
     baumgarte_partial_dv_approx.col(i) =
         (buamgarte_residual_perturbed_v - baumgarte_residual) / finite_diff;
   }
@@ -54,9 +51,8 @@ void compute_finite_diff(pinocchio::Model &model, pinocchio::Data &data,
   for (int i = 0; i < model.nv; i++) {
     a_perturbed = a;
     a_perturbed(i) += finite_diff;
-    pinocchio::forwardKinematics(model, data, q, v, a_perturbed);
-    pinocchio::updateFramePlacements(model, data);
-    ckc.computeBaumgarteResidual(model, data, buamgarte_residual_perturbed_a);
+    ckc.updateKinematics(q, v, a_perturbed);
+    ckc.computeBaumgarteResidual(buamgarte_residual_perturbed_a);
     baumgarte_partial_da_approx.col(i) =
         (buamgarte_residual_perturbed_a - baumgarte_residual) / finite_diff;
   }
@@ -66,23 +62,20 @@ void test_finite_diff(pinocchio::Model &model, pinocchio::Data &data,
                       robotoc::CKC &ckc, Eigen::VectorXd &q, Eigen::VectorXd &v,
                       Eigen::VectorXd &a) {
 
-  Eigen::MatrixXd baumgarte_partial_dq = Eigen::MatrixXd::Zero(3, model.nv);
-  Eigen::MatrixXd baumgarte_partial_dv = Eigen::MatrixXd::Zero(3, model.nv);
-  Eigen::MatrixXd baumgarte_partial_da = Eigen::MatrixXd::Zero(3, model.nv);
+  Eigen::MatrixXd baumgarte_partial_dq = Eigen::MatrixXd::Zero(2, model.nv);
+  Eigen::MatrixXd baumgarte_partial_dv = Eigen::MatrixXd::Zero(2, model.nv);
+  Eigen::MatrixXd baumgarte_partial_da = Eigen::MatrixXd::Zero(2, model.nv);
 
   Eigen::MatrixXd baumgarte_partial_dq_approx =
-      Eigen::MatrixXd::Zero(3, model.nv);
+      Eigen::MatrixXd::Zero(2, model.nv);
   Eigen::MatrixXd baumgarte_partial_dv_approx =
-      Eigen::MatrixXd::Zero(3, model.nv);
+      Eigen::MatrixXd::Zero(2, model.nv);
   Eigen::MatrixXd baumgarte_partial_da_approx =
-      Eigen::MatrixXd::Zero(3, model.nv);
+      Eigen::MatrixXd::Zero(2, model.nv);
 
-pinocchio:
-  forwardKinematics(model, data, q, v, a);
-  pinocchio::updateFramePlacements(model, data);
-  pinocchio::computeForwardKinematicsDerivatives(model, data, q, v, a);
-  ckc.computeBaumgarteDerivatives(model, data, baumgarte_partial_dq,
-                                  baumgarte_partial_dv, baumgarte_partial_da);
+  ckc.updateKinematics(q, v, a);
+  ckc.computeBaumgarteDerivatives(baumgarte_partial_dq, baumgarte_partial_dv,
+                                  baumgarte_partial_da);
 
   compute_finite_diff(model, data, ckc, q, v, a, baumgarte_partial_dq_approx,
                       baumgarte_partial_dv_approx, baumgarte_partial_da_approx);
@@ -98,139 +91,58 @@ pinocchio:
             << std::endl;
 }
 
-void test_finite_diff_contact(pinocchio::Model &model, pinocchio::Data &data,
-                              robotoc::PointContact &contact,
-                              Eigen::VectorXd &q, Eigen::VectorXd &v,
-                              Eigen::VectorXd &a) {
-
-  Eigen::Vector3d desired_contact_position = Eigen::Vector3d::Zero();
-pinocchio:
-  forwardKinematics(model, data, q, v, a);
-  pinocchio::updateFramePlacements(model, data);
-  pinocchio::computeForwardKinematicsDerivatives(model, data, q, v, a);
-
-  Eigen::Vector3d baumgarte_residual;
-  Eigen::MatrixXd baumgarte_partial_dq = Eigen::MatrixXd::Zero(3, model.nv);
-  Eigen::MatrixXd baumgarte_partial_dv = Eigen::MatrixXd::Zero(3, model.nv);
-  Eigen::MatrixXd baumgarte_partial_da = Eigen::MatrixXd::Zero(3, model.nv);
-
-  contact.computeBaumgarteResidual(model, data, desired_contact_position,
-                                   baumgarte_residual);
-  contact.computeBaumgarteDerivatives(model, data, baumgarte_partial_dq,
-                                      baumgarte_partial_dv,
-                                      baumgarte_partial_da);
-
-  Eigen::Vector3d buamgarte_residual_perturbed_q,
-      buamgarte_residual_perturbed_v, buamgarte_residual_perturbed_a;
-  Eigen::MatrixXd baumgarte_partial_dq_approx =
-      Eigen::MatrixXd::Zero(3, model.nv);
-  Eigen::MatrixXd baumgarte_partial_dv_approx =
-      Eigen::MatrixXd::Zero(3, model.nv);
-  Eigen::MatrixXd baumgarte_partial_da_approx =
-      Eigen::MatrixXd::Zero(3, model.nv);
-
-  Eigen::VectorXd q_perturbed(model.nq);
-  Eigen::VectorXd v_perturbed(model.nv);
-  Eigen::VectorXd a_perturbed(model.nv);
-
-  float finite_diff = 1e-4;
-
-  for (int i = 0; i < model.nv; i++) {
-    Eigen::VectorXd dq = Eigen::VectorXd::Zero(model.nv);
-    dq(i) = finite_diff;
-    pinocchio::integrate(model, q, dq, q_perturbed);
-    pinocchio::forwardKinematics(model, data, q_perturbed, v, a);
-    pinocchio::updateFramePlacements(model, data);
-    contact.computeBaumgarteResidual(model, data, desired_contact_position,
-                                     buamgarte_residual_perturbed_q);
-    baumgarte_partial_dq_approx.col(i) =
-        (buamgarte_residual_perturbed_q - baumgarte_residual) / finite_diff;
-  }
-
-  for (int i = 0; i < model.nv; i++) {
-    v_perturbed = v;
-    v_perturbed(i) += finite_diff;
-    pinocchio::forwardKinematics(model, data, q, v_perturbed, a);
-    pinocchio::updateFramePlacements(model, data);
-    contact.computeBaumgarteResidual(model, data, desired_contact_position,
-                                     buamgarte_residual_perturbed_v);
-    baumgarte_partial_dv_approx.col(i) =
-        (buamgarte_residual_perturbed_v - baumgarte_residual) / finite_diff;
-  }
-
-  for (int i = 0; i < model.nv; i++) {
-    a_perturbed = a;
-    a_perturbed(i) += finite_diff;
-    pinocchio::forwardKinematics(model, data, q, v, a_perturbed);
-    pinocchio::updateFramePlacements(model, data);
-    contact.computeBaumgarteResidual(model, data, desired_contact_position,
-                                     buamgarte_residual_perturbed_a);
-    baumgarte_partial_da_approx.col(i) =
-        (buamgarte_residual_perturbed_a - baumgarte_residual) / finite_diff;
-  }
-
-  std::cout << "dq error: "
-            << (baumgarte_partial_dq - baumgarte_partial_dq_approx).norm()
-            << std::endl;
-  std::cout << "dv error: "
-            << (baumgarte_partial_dv - baumgarte_partial_dv_approx).norm()
-            << std::endl;
-  std::cout << "da error: "
-            << (baumgarte_partial_da - baumgarte_partial_da_approx).norm()
-            << std::endl;
-}
-
 int main() {
-  const int MODEL_NAME = 2;
-  std::string FR_FOOT, FL_FOOT;
   pinocchio::Model model;
   std::string urdf_file;
 
-  // const std::string
-  // urdf_file("/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/urdf/olympus.urdf");
+  const std::string FL_INNER("FrontLeft_ankle_inner");
+  const std::string FL_OUTER("FrontLeft_ankle_outer");
+  const std::string FR_INNER("FrontRight_ankle_inner");
+  const std::string FR_OUTER("FrontRight_ankle_outer");
+  const std::string BL_INNER("BackLeft_ankle_inner");
+  const std::string BL_OUTER("BackLeft_ankle_outer");
+  const std::string BR_INNER("BackRight_ankle_inner");
+  const std::string BR_OUTER("BackRight_ankle_outer");
 
-  switch (MODEL_NAME) {
-  case 0:
-    FR_FOOT = "RF_FOOT";
-    FL_FOOT = "LF_FOOT";
-    urdf_file = std::string("/home/bolivar/OLYMPOC/robotoc/examples/anymal/"
-                            "anymal_b_simple_description/urdf/anymal.urdf");
-    pinocchio::urdf::buildModel(urdf_file, JointModelFreeFlyer(), model);
-    break;
-  case 1:
-    FR_FOOT = "rleg6_body";
-    FL_FOOT = "lleg6_body";
-    pinocchio::buildModels::humanoidRandom(model, true);
-    break;
+  urdf_file = std::string(
+      "/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/"
+      "urdf/olympus.urdf");
+  pinocchio::urdf::buildModel(urdf_file, JointModelFreeFlyer(), model);
 
-  case 2:
-    FR_FOOT = "FrontLeft_ankle_inner";
-    FL_FOOT = "FrontLeft_ankle_outer";
-    urdf_file = std::string(
-        "/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/"
-        "urdf/olympus.urdf");
-    pinocchio::urdf::buildModel(urdf_file, JointModelFreeFlyer(), model);
-
-    break;
-  default:
-    std::cout << "Model not found" << std::endl;
-    return 0;
-  }
   pinocchio::Data data(model);
-  model.lowerPositionLimit.head<3>().fill(-1.);
-  model.upperPositionLimit.head<3>().fill(1.);
+  model.lowerPositionLimit.head<3>().fill(-3.);
+  model.upperPositionLimit.head<3>().fill(3.);
 
-  VectorXd q = randomConfiguration(model);
+  VectorXd q = VectorXd::Zero(model.nq);
+  q = pinocchio::randomConfiguration(model);
+
   VectorXd v = VectorXd::Random(model.nv);
   VectorXd a = VectorXd::Random(model.nv);
 
-  robotoc::CKCInfo info(FR_FOOT, FL_FOOT, 1, 1);
-  robotoc::CKC ckc(model, info);
-  robotoc::ContactModelInfo contact_info(FL_FOOT, 1, 1);
-  robotoc::PointContact contact(model, contact_info);
+  robotoc::CKCInfo info_FL(FL_INNER, FL_OUTER, 1, 1);
+  robotoc::CKCInfo info_FR(FR_INNER, FR_OUTER, 1, 1);
+  robotoc::CKCInfo info_BL(BL_INNER, BL_OUTER, 1, 1);
+  robotoc::CKCInfo info_BR(BR_INNER, BR_OUTER, 1, 1);
+  robotoc::CKC ckc_FL(model, info_FL);
+  robotoc::CKC ckc_FR(model, info_FR);
+  robotoc::CKC ckc_BL(model, info_BL);
+  robotoc::CKC ckc_BR(model, info_BR);
 
-  test_finite_diff(model, data, ckc, q, v, a);
-  test_finite_diff_contact(model, data, contact, q, v, a);
+  Eigen::Vector2d baumgarte_residual = Eigen::Vector2d::Zero();
+
+  Eigen::MatrixXd baumgarte_partial_dq = Eigen::MatrixXd::Zero(2, model.nv);
+  Eigen::MatrixXd baumgarte_partial_dv = Eigen::MatrixXd::Zero(2, model.nv);
+  Eigen::MatrixXd baumgarte_partial_da = Eigen::MatrixXd::Zero(2, model.nv);
+
+  std::vector<robotoc::CKC> ckcs = {ckc_FL, ckc_FR, ckc_BL, ckc_BR};
+
+  for (auto &ckc : ckcs) {
+    ckc.updateKinematics(q, v, a);
+    ckc.computeBaumgarteResidual(baumgarte_residual);
+    std::cout << "baumgarte_residual: " << baumgarte_residual.transpose()
+              << std::endl;
+    test_finite_diff(model, data, ckc, q, v, a);
+  }
 
   return 0;
 }

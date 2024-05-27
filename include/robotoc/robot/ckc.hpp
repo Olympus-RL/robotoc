@@ -19,8 +19,8 @@ namespace robotoc {
 /// @brief Closed Kinematic Chain (CKC) constraint.
 class CKC {
 public:
-  using Matrix6xd = Eigen::Matrix<double, 6, Eigen::Dynamic>;
-  using Matrix3xd = Eigen::Matrix<double, 3, Eigen::Dynamic>;
+  using Matrix64d = Eigen::Matrix<double, 6, 4>;
+  using Matrix34d = Eigen::Matrix<double, 3, 4>;
 
   ///
   /// @brief Construct a point contact model.
@@ -28,7 +28,7 @@ public:
   /// pinocchio model must be initialized, e.g., by pinocchio::buildModel().
   /// @param[in] contact_model_info Info of the point contact model.
   ///
-  CKC(const pinocchio::Model &model, const CKCInfo &contact_model_info);
+  CKC(const ::pinocchio::Model &model, const CKCInfo &contact_model_info);
 
   ///
   /// @brief Default constructor.
@@ -60,19 +60,20 @@ public:
   ///
   CKC &operator=(CKC &&) noexcept = default;
 
-  void kuk() const;
-
+  template <typename ConfigVectorType, typename TangentVectorType1,
+            typename TangentVectorType2>
+  void updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
+                        const Eigen::MatrixBase<TangentVectorType1> &v,
+                        const Eigen::MatrixBase<TangentVectorType2> &a);
   ///
   /// @brief Converts the 3D constraint forces in world coordinate to the
   /// corresponding joint spatial forces.
-  /// @param[in] contact_force The 3D constraint forces in the local frame.
-  /// @param[out] joint_forces: The corresponding joint spatial forces.
+  /// @param[in] constraint_force The 2D constraint forces in the the common
+  /// ancestor frame frame.
+  /// @param[out] Q The generalized constraint force
   ///
-  void computeJointForceFromConstraintForce(
-      const Eigen::Matrix3d &R_0, const Eigen::Matrix3d &R_1,
-      const Eigen::Vector3d &constraint_force,
-      pinocchio::container::aligned_vector<pinocchio::Force> &joint_forces)
-      const;
+  void computeGeneralizedForceFromConstraintForce(
+      const Eigen::Vector2d &constraint_force, Eigen::VectorXd &Q) const;
 
   ///
   /// @brief Computes the residual of the contact constraints considered by the
@@ -86,8 +87,7 @@ public:
   ///
   template <typename VectorType1>
   void computeBaumgarteResidual(
-      const pinocchio::Model &model, const pinocchio::Data &data,
-      const Eigen::MatrixBase<VectorType1> &baumgarte_residual) const;
+      const Eigen::MatrixBase<VectorType1> &baumgarte_residual);
 
   ///
   /// @brief Computes the partial derivatives of the contact constraints
@@ -105,7 +105,6 @@ public:
   ///
   template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
   void computeBaumgarteDerivatives(
-      const pinocchio::Model &model, pinocchio::Data &data,
       const Eigen::MatrixBase<MatrixType1> &baumgarte_partial_dq,
       const Eigen::MatrixBase<MatrixType2> &baumgarte_partial_dv,
       const Eigen::MatrixBase<MatrixType3> &baumgarte_partial_da);
@@ -131,32 +130,28 @@ public:
   /// @param[out] position_residual Residual of the contact constraint. Size
   /// must be 3.
   ///
-  template <typename VectorType1>
-  void computeCKCResidual(
-      const pinocchio::Model &model, const pinocchio::Data &data,
-      const Eigen::MatrixBase<VectorType1> &position_residual) const;
+  ;
 
   ///
   /// @brief Gets the contact model info.
   /// @return const reference to the contact model info.
   ///
   const CKCInfo &ckcInfo() const;
-  const int &frame_0_idx() const;
-  const int &frame_1_idx() const;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 private:
   CKCInfo info_;
-  int frame_0_idx_, parent_0_joint_idx_, dimv_;
-  int frame_1_idx_, parent_1_joint_idx_;
-  SE3 jXf_0_, jXf_1_;
+
+  int dimq_, dimv_, start_q_idx_, start_v_idx_, frame_0_idx_, frame_1_idx_;
   // classical velocity of frame
-  pinocchio::Motion v_frame_, a_frame_;
-  Eigen::Matrix3d v_linear_skew_, v_angular_skew_, r_skew_, alpha_skew_;
-  Matrix6xd J_frame_, J_frame_dot_, frame_v_partial_dq_, frame_a_partial_dq_,
+  ::pinocchio::Model submodel_;
+  ::pinocchio::Data subdata_;
+  ::pinocchio::Motion v_frame_, a_frame_;
+  Eigen::Matrix3d v_linear_skew_, v_angular_skew_, alpha_skew_, r_skew_;
+  Matrix64d J_frame_, J_frame_dot_, frame_v_partial_dq_, frame_a_partial_dq_,
       frame_a_partial_dv_, frame_a_partial_da_;
-  Matrix3xd vel_partial_dq_;
+  Matrix34d vel_partial_dq_;
 };
 
 } // namespace robotoc

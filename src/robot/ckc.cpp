@@ -3,57 +3,67 @@
 #include "pinocchio/algorithm/frames.hpp"
 #include "pinocchio/algorithm/joint-configuration.hpp"
 #include "pinocchio/algorithm/kinematics-derivatives.hpp"
+#include "pinocchio/algorithm/model.hpp"
 
 #include <cassert>
-
+#include <math.h>
 #include <stdexcept>
-
+#include <vector>
 namespace robotoc {
 
-CKC::CKC(const pinocchio::Model &model, const CKCInfo &info)
-    : info_(info), dimv_(model.nv), jXf_0_(SE3::Identity()),
-      jXf_1_(SE3::Identity()), J_frame_(Eigen::MatrixXd::Zero(6, model.nv)),
-      vel_partial_dq_(Eigen::MatrixXd::Zero(3, model.nv)),
-      frame_v_partial_dq_(Eigen::MatrixXd::Zero(6, model.nv)),
-      frame_a_partial_dq_(Eigen::MatrixXd::Zero(6, model.nv)),
-      frame_a_partial_dv_(Eigen::MatrixXd::Zero(6, model.nv)),
-      frame_a_partial_da_(Eigen::MatrixXd::Zero(6, model.nv)) {
+CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
+    : info_(info), dimq_(model.nq), dimv_(model.nv) {
   if (!model.existFrame(info.frame_0)) {
-    throw std::invalid_argument("[CKC] invalid argument: frame_0 '" +
-                                info.frame_0 + "' does not exit!");
+    throw ::std::invalid_argument("[CKC] invalid argument: frame_0 '" +
+                                  info.frame_0 + "' does not exit!");
   }
-  if (!model.existFrame(info.frame_0)) {
-    throw std::invalid_argument("[CKC] invalid argument: frame '" +
-                                info.frame_0 + "' does not exit!");
+  if (!model.existFrame(info.frame_1)) {
+    throw ::std::invalid_argument("[CKC] invalid argument: frame '" +
+                                  info.frame_1 + "' does not exit!");
   }
 
   frame_0_idx_ = model.getFrameId(info.frame_0);
   frame_1_idx_ = model.getFrameId(info.frame_1);
-  parent_0_joint_idx_ = model.frames[frame_0_idx_].parent;
-  parent_1_joint_idx_ = model.frames[frame_1_idx_].parent;
-  jXf_0_ = model.frames[frame_0_idx_].placement;
-  jXf_1_ = model.frames[frame_1_idx_].placement;
+  ::std::vector<pinocchio::JointIndex> joints2keepID;
+  joints2keepID.push_back(model.frames[frame_0_idx_].parent);
+  joints2keepID.push_back(model.frames[frame_0_idx_].parent - 1);
+  joints2keepID.push_back(model.frames[frame_1_idx_].parent);
+  joints2keepID.push_back(model.frames[frame_1_idx_].parent - 1);
+  ::std::vector<pinocchio::JointIndex> joints2lockID;
+  for (int i = 1; i < model.njoints; i++) {
+    if (::std::find(joints2keepID.begin(), joints2keepID.end(), i) ==
+        joints2keepID.end()) {
+      joints2lockID.push_back(i);
+    }
+  }
+  int start_joint_idx =
+      *::std::min_element(joints2keepID.begin(), joints2keepID.end());
+  start_q_idx_ = model.joints[start_joint_idx].idx_q();
+  start_v_idx_ = model.joints[start_joint_idx].idx_v();
+  Eigen::VectorXd q = ::pinocchio::neutral(model);
+  q.segment(3, 4) << std::sqrt(2.0) / 2, 0.0, 0.0,
+      std::sqrt(2.0) /
+          2; // 90 degree rotation to make the constraint in the x-y plane
+  ::pinocchio::buildReducedModel(model, joints2lockID, q, submodel_);
+  subdata_ = pinocchio::Data(submodel_);
+
+  frame_0_idx_ =
+      submodel_.getFrameId(info.frame_0); // update the frae idx with the sub
+                                          // model since they might have changed
+  frame_1_idx_ = submodel_.getFrameId(info.frame_1);
+
   v_frame_.setZero();
   a_frame_.setZero();
   v_linear_skew_.setZero();
   v_angular_skew_.setZero();
-  r_skew_.setZero();
   alpha_skew_.setZero();
-}
-
-void CKC::computeJointForceFromConstraintForce(
-    const Eigen::Matrix3d &R_0, const Eigen::Matrix3d &R_1,
-    const Eigen::Vector3d &constraint_force,
-    pinocchio::container::aligned_vector<pinocchio::Force> &joint_forces)
-    const {
-
-  // transform force to the local frame and then move to joint frame
-  int sgn = 1;
-  joint_forces[parent_0_joint_idx_] = jXf_0_.act(pinocchio::Force(
-      sgn * R_0.transpose() * constraint_force, Eigen::Vector3d::Zero()));
-  sgn *= -1;
-  joint_forces[parent_1_joint_idx_] = jXf_1_.act(pinocchio::Force(
-      sgn * R_0.transpose() * constraint_force, Eigen::Vector3d::Zero()));
+  r_skew_.setZero();
+  vel_partial_dq_.setZero();
+  frame_v_partial_dq_.setZero();
+  frame_a_partial_dq_.setZero();
+  frame_a_partial_dv_.setZero();
+  frame_a_partial_da_.setZero();
+  J_frame_.setZero();
 }
 
 void CKC::setBaumgarteGains(const double baumgarte_position_gain,
@@ -70,8 +80,6 @@ void CKC::setBaumgarteGains(const double baumgarte_position_gain,
   info_.baumgarte_velocity_gain = baumgarte_velocity_gain;
 }
 
-const CKCInfo &CKC::ckcInfo() const { return info_; }
-const int &CKC::frame_0_idx() const { return frame_0_idx_; }
-const int &CKC::frame_1_idx() const { return frame_1_idx_; }
+const CKCInfo &CKC::ckcInfo() const { return info_; };
 
 } // namespace robotoc
