@@ -103,7 +103,6 @@ void CKC::computeJointForceFromConstraintForce(
   joint_forces[joint_1_idx_] += jXf_1_.act(pinocchio::Force(
       -g_3d_local,
       Eigen::Vector3d::Zero())); // minus sign on force 2 ///note the force
-                                 // needs to be reset somwhere else
 
   //// correction term
 

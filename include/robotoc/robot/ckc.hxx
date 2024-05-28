@@ -28,7 +28,6 @@ CKC::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
   pinocchio::computeForwardKinematicsDerivatives(
       submodel_, subdata_, q.template segment<4>(start_q_idx_),
       v.template segment<4>(start_v_idx_), a.template segment<4>(start_v_idx_));
-  pinocchio::computeJointKinematicHessians(submodel_, subdata_);
 }
 
 template <typename ConfigVectorType, typename TangentVectorType>
@@ -233,7 +232,7 @@ inline void CKC::computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc) {
   assert(Jckc.cols() == dimv_);
   (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc)).setZero();
   int sgn = 1;
-  for (int frame_idx : {frame_0_idx_,frame_1_idx_}) {
+  for (int frame_idx : {frame_0_idx_, frame_1_idx_}) {
     J_frame_.setZero();
     pinocchio::getFrameJacobian(submodel_, subdata_, frame_idx,
                                 pinocchio::LOCAL_WORLD_ALIGNED, J_frame_);
@@ -249,6 +248,7 @@ inline void CKC::computeConstrsaintForceDerivative(
     const Eigen::Vector2d &g, const Eigen::MatrixBase<MatrixType> &dQdq) {
   assert(dQdq.rows() == dimv_);
   assert(dQdq.cols() == dimv_);
+  assert(false); // this code is not tested
   (const_cast<Eigen::MatrixBase<MatrixType> &>(dQdq)).setZero();
   Eigen::Vector3d g_3d_world = Eigen::Vector3d::Zero();
   g_3d_world.head<2>() = g;
