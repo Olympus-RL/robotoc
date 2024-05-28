@@ -3,6 +3,7 @@ pybind11_add_robotoc_module(robot impact_status)
 pybind11_add_robotoc_module(robot se3)
 pybind11_add_robotoc_module(robot robot_properties)
 pybind11_add_robotoc_module(robot contact_model_info)
+pybind11_add_robotoc_module(robot ckc_info)
 pybind11_add_robotoc_module(robot robot_model_info)
 pybind11_add_robotoc_module(robot robot)
 

@@ -13,8 +13,8 @@ namespace python {
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(contact_model_info, m) {
-  py::class_<ContactModelInfo>(m, "ContactModelInfo")
+PYBIND11_MODULE(ckc_info, m) {
+  py::class_<CKCInfo>(m, "CKCInfo")
       .def(py::init<const std::string &, const std::string &, const double>(),
            py::arg("frame_0"), py::arg("frame_1"),
            py::arg("baumgarte_time_step"))
@@ -24,13 +24,13 @@ PYBIND11_MODULE(contact_model_info, m) {
            py::arg("baumgarte_position_gain"),
            py::arg("baumgarte_velocity_gain"))
       .def(py::init<>())
-      .def_readwrite("frame_0", &ContactModelInfo::frame_0)
-      .def_readwrite("frame_1", &ContactModelInfo::frame_1)
+      .def_readwrite("frame_0", &CKCInfo::frame_0)
+      .def_readwrite("frame_1", &CKCInfo::frame_1)
       .def_readwrite("baumgarte_position_gain",
-                     &ContactModelInfo::baumgarte_position_gain)
+                     &CKCInfo::baumgarte_position_gain)
       .def_readwrite("baumgarte_velocity_gain",
-                     &ContactModelInfo::baumgarte_velocity_gain)
-          DEFINE_ROBOTOC_PYBIND11_CLASS_CLONE(ContactModelInfo);
+                     &CKCInfo::baumgarte_velocity_gain)
+          DEFINE_ROBOTOC_PYBIND11_CLASS_CLONE(CKCInfo);
 }
 
 } // namespace python

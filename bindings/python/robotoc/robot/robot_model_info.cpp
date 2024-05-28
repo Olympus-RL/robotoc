@@ -31,6 +31,7 @@ PYBIND11_MODULE(robot_model_info, m) {
       .def_readwrite("urdf_path", &RobotModelInfo::urdf_path)
       .def_readwrite("base_joint_type", &RobotModelInfo::base_joint_type)
       .def_readwrite("point_contacts", &RobotModelInfo::point_contacts)
+      .def_readwrite("ckcs", &RobotModelInfo::ckcs)
       .def_readwrite("surface_contacts", &RobotModelInfo::surface_contacts)
       .def_readwrite("contact_inv_damping",
                      &RobotModelInfo::contact_inv_damping)

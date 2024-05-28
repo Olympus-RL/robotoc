@@ -187,6 +187,9 @@ Robot::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
   pinocchio::computeForwardKinematicsDerivatives(model_, data_, q, v,
                                                  Eigen::VectorXd::Zero(dimv_));
   pinocchio::jacobianCenterOfMass(model_, data_, false);
+  for (int i = 0; i < num_ckcs_; i++) {
+    ckcs_[i].updateKinematics(q, v);
+  }
 }
 
 template <typename ConfigVectorType>
@@ -196,6 +199,9 @@ Robot::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q) {
   pinocchio::framesForwardKinematics(model_, data_, q);
   pinocchio::computeJointJacobians(model_, data_, q);
   pinocchio::jacobianCenterOfMass(model_, data_, false);
+  for (int i = 0; i < num_ckcs_; i++) {
+    ckcs_[i].updateKinematics(q);
+  }
 }
 
 template <typename ConfigVectorType, typename TangentVectorType1,
@@ -499,6 +505,35 @@ inline void Robot::computeContactPositionDerivative(
     }
   }
   assert(dimf == impact_status.dimf());
+}
+
+template <typename VectorType>
+inline void
+Robot::computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual) {
+  assert(residual.size() == dimg_);
+  (const_cast<Eigen::MatrixBase<VectorType> &>(residual)).setZero();
+  int segment_start = 0;
+  for (int i = 0; i < num_ckcs_; ++i) {
+    ckcs_[i].computeCKCResidual(
+        (const_cast<Eigen::MatrixBase<VectorType> &>(residual))
+            .template segment<2>(segment_start));
+    segment_start += 2;
+  }
+}
+
+template <typename MatrixType>
+inline void
+Robot::computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc) {
+  assert(Jckc.rows() == dimg_);
+  assert(Jckc.cols() == dimv_);
+  (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc)).setZero();
+  int segment_start = 0;
+  for (int i = 0; i < num_ckcs_; ++i) {
+    ckcs_[i].computeCKCJacobian(
+        (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc))
+            .template middleRows<2>(segment_start));
+    segment_start += 2;
+  }
 }
 
 inline void Robot::setImpactForces(const ImpactStatus &impact_status,

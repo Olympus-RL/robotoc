@@ -30,6 +30,32 @@ CKC::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
       v.template segment<4>(start_v_idx_), a.template segment<4>(start_v_idx_));
 }
 
+template <typename ConfigVectorType, typename TangentVectorType>
+inline void
+CKC::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
+                      const Eigen::MatrixBase<TangentVectorType> &v) {
+  assert(q.size() == dimq_);
+  assert(v.size() == dimv_);
+  pinocchio::forwardKinematics(submodel_, subdata_,
+                               q.template segment<4>(start_q_idx_),
+                               v.template segment<4>(start_v_idx_));
+  pinocchio::updateFramePlacements(submodel_, subdata_);
+  pinocchio::computeForwardKinematicsDerivatives(
+      submodel_, subdata_, q.template segment<4>(start_q_idx_),
+      v.template segment<4>(start_v_idx_), Eigen::Vector4d::Zero());
+}
+
+template <typename ConfigVectorType>
+inline void
+CKC::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q) {
+  assert(q.size() == dimq_);
+  pinocchio::forwardKinematics(submodel_, subdata_,
+                               q.template segment<4>(start_q_idx_));
+  pinocchio::updateFramePlacements(submodel_, subdata_);
+  pinocchio::computeJointJacobians(submodel_, subdata_,
+                                   q.template segment<4>(start_q_idx_));
+}
+
 template <typename VectorType1>
 inline void CKC::computeBaumgarteResidual(
     const Eigen::MatrixBase<VectorType1> &baumgarte_residual) {
@@ -188,6 +214,34 @@ inline void CKC::computeBaumgarteDerivatives(
   }
 }
 
+template <typename VectorType>
+inline void
+CKC::computeCKCResidual(const Eigen::MatrixBase<VectorType> &ckc_residual) {
+  (const_cast<Eigen::MatrixBase<VectorType> &>(ckc_residual)).setZero();
+  int sgn = 1;
+  for (int frame_idx : {frame_0_idx_, frame_1_idx_}) {
+    (const_cast<Eigen::MatrixBase<VectorType> &>(ckc_residual)) +=
+        sgn * subdata_.oMf[frame_idx].translation().template head<2>();
+    sgn *= -1;
+  }
+}
+
+template <typename MatrixType>
+inline void CKC::computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc) {
+  assert(Jckc.rows() == 2);
+  assert(Jckc.cols() == dimv_);
+  (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc)).setZero();
+  int sgn = 1;
+  for (int frame_idx : {frame_0_idx_, frame_1_idx_}) {
+    J_frame_.setZero();
+    pinocchio::getFrameJacobian(submodel_, subdata_, frame_idx,
+                                pinocchio::LOCAL_WORLD_ALIGNED, J_frame_);
+    (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc))
+        .template middleCols<4>(start_v_idx_)
+        .noalias() += sgn * J_frame_.template topRows<2>();
+    sgn *= -1;
+  }
+}
 } // namespace robotoc
 
 #endif // ROBOTOC_CKC_HXX_

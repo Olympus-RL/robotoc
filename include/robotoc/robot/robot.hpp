@@ -559,6 +559,12 @@ public:
       const ImpactStatus &impact_status,
       const Eigen::MatrixBase<MatrixType> &position_partial_dq);
 
+  template <typename VectorType>
+  void computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual);
+
+  template <typename MatrixType>
+  void computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc);
+
   ///
   /// @brief Set contact forces in this robot model for each active contacts.
   /// @param[in] contact_status Contact status.

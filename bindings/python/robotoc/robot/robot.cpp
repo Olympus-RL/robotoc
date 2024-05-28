@@ -17,6 +17,19 @@ PYBIND11_MODULE(robot, m) {
   py::class_<Robot>(m, "Robot")
       .def(py::init<const RobotModelInfo &>(), py::arg("robot_model_info"))
       .def(py::init<>())
+      .def("get_ckc_residual",
+           [](Robot &self) {
+             Eigen::VectorXd ckc_residual = Eigen::VectorXd::Zero(self.dimg());
+             self.computeCKCResidual(ckc_residual);
+             return ckc_residual;
+           })
+      .def("get_ckc_jacobian",
+           [](Robot &self) {
+             Eigen::MatrixXd ckc_jacobian =
+                 Eigen::MatrixXd::Zero(self.dimg(), self.dimv());
+             self.computeCKCJacobian(ckc_jacobian);
+             return ckc_jacobian;
+           })
       .def(
           "rnea",
           [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
@@ -70,6 +83,23 @@ PYBIND11_MODULE(robot, m) {
             return J;
           },
           py::arg("frame"))
+      .def(
+          "update_kinematics",
+          [](Robot &self, const Eigen::VectorXd &q) {
+            self.updateKinematics(q);
+          },
+          py::arg("q"))
+      .def(
+          "update_kinematics",
+          [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v) {
+            self.updateKinematics(q, v);
+          },
+          py::arg("q"), py::arg("v"))
+      .def(
+          "update_kinemtaics",
+          [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
+             const Eigen::VectorXd &a) { self.updateKinematics(q, v, a); },
+          py::arg("q"), py::arg("v"), py::arg("a"))
       .def(
           "forward_kinematics",
           [](Robot &self, const Eigen::VectorXd &q, bool compute_jacobians) {
@@ -180,6 +210,7 @@ PYBIND11_MODULE(robot, m) {
       .def("dimv", &Robot::dimv)
       .def("dimu", &Robot::dimu)
       .def("max_dimf", &Robot::max_dimf)
+      .def("dimg", &Robot::dimg)
       .def("dim_passive", &Robot::dim_passive)
       .def("has_floating_base", &Robot::hasFloatingBase)
       .def("max_num_contacts", &Robot::maxNumContacts)

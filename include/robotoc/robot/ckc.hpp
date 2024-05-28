@@ -66,6 +66,12 @@ public:
   void updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
                         const Eigen::MatrixBase<TangentVectorType1> &v,
                         const Eigen::MatrixBase<TangentVectorType2> &a);
+  template <typename ConfigVectorType, typename TangentVectorType>
+  void updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
+                        const Eigen::MatrixBase<TangentVectorType> &v);
+  template <typename ConfigVectorType>
+  void updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q);
+
   ///
   /// @brief Converts the 3D constraint forces in world coordinate to the
   /// corresponding joint spatial forces.
@@ -119,6 +125,11 @@ public:
       const Eigen::MatrixBase<MatrixType1> &baumgarte_partial_dq,
       const Eigen::MatrixBase<MatrixType2> &baumgarte_partial_dv,
       const Eigen::MatrixBase<MatrixType3> &baumgarte_partial_da);
+
+  template <typename VectorType>
+  void computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual);
+  template <typename MatrixType>
+  void computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc);
 
   ///
   /// @brief Sets the gain parameters of the Baumgarte's stabilization method.
