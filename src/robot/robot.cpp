@@ -143,22 +143,20 @@ void Robot::setContactForces(const ContactStatus &contact_status,
   assert(f.size() == max_num_contacts_);
   const int num_point_contacts = point_contacts_.size();
   const int num_surface_contacts = surface_contacts_.size();
+
+  std::for_each(fjoint_.begin(), fjoint_.end(),
+                [](pinocchio::Force &fi) { fi.setZero(); });
+
   for (int i = 0; i < num_point_contacts; ++i) {
     if (contact_status.isContactActive(i)) {
       point_contacts_[i].computeJointForceFromContactForce(
           f[i].template head<3>(), fjoint_);
-    } else {
-      point_contacts_[i].computeJointForceFromContactForce(
-          Eigen::Vector3d::Zero(), fjoint_);
     }
   }
   for (int i = 0; i < num_surface_contacts; ++i) {
     if (contact_status.isContactActive(i + num_point_contacts)) {
       surface_contacts_[i].computeJointForceFromContactWrench(
           f[i + num_point_contacts], fjoint_);
-    } else {
-      surface_contacts_[i].computeJointForceFromContactWrench(Vector6d::Zero(),
-                                                              fjoint_);
     }
   }
 }
@@ -356,7 +354,8 @@ void Robot::setLowerJointPositionLimit(
     const Eigen::VectorXd &lower_joint_position_limit) {
   if (lower_joint_position_limit_.size() != lower_joint_position_limit.size()) {
     throw std::invalid_argument(
-        "[Robot] invalid argument: lower_joint_position_limit.size() must be " +
+        "[Robot] invalid argument: lower_joint_position_limit.size() must "
+        "be " +
         std::to_string(lower_joint_position_limit_.size()));
   }
   lower_joint_position_limit_ = lower_joint_position_limit;
@@ -366,7 +365,8 @@ void Robot::setUpperJointPositionLimit(
     const Eigen::VectorXd &upper_joint_position_limit) {
   if (upper_joint_position_limit_.size() != upper_joint_position_limit.size()) {
     throw std::invalid_argument(
-        "[Robot] invalid argument: upper_joint_position_limit.size() must be " +
+        "[Robot] invalid argument: upper_joint_position_limit.size() must "
+        "be " +
         std::to_string(upper_joint_position_limit_.size()));
   }
   upper_joint_position_limit_ = upper_joint_position_limit;

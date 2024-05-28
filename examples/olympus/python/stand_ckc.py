@@ -14,7 +14,7 @@ model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte
                              robotoc.ContactModelInfo('BackLeft_paw', baumgarte_time_step),
                              robotoc.ContactModelInfo('FrontRight_paw', baumgarte_time_step),
                              robotoc.ContactModelInfo('BackRight_paw', baumgarte_time_step)]
-model_info.ckcs = [robotoc.CKCInfo("FrontLeft_ankle_outer","FrontLeft_ankle_inner",baumgarte_time_step),
+model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inner",baumgarte_time_step),
                     robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step),
                     robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step),
                     robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step)]

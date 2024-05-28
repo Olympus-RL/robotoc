@@ -571,7 +571,7 @@ inline void Robot::RNEA(const Eigen::MatrixBase<ConfigVectorType> &q,
   assert(v.size() == dimv_);
   assert(a.size() == dimv_);
   assert(tau.size() == dimv_);
-  if (max_num_contacts_) {
+  if (max_num_contacts_ + num_ckcs_ > 0) {
     const_cast<Eigen::MatrixBase<TangentVectorType3> &>(tau) =
         pinocchio::rnea(model_, data_, q, v, a, fjoint_);
   } else {

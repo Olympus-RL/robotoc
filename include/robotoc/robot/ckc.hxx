@@ -28,6 +28,7 @@ CKC::updateKinematics(const Eigen::MatrixBase<ConfigVectorType> &q,
   pinocchio::computeForwardKinematicsDerivatives(
       submodel_, subdata_, q.template segment<4>(start_q_idx_),
       v.template segment<4>(start_v_idx_), a.template segment<4>(start_v_idx_));
+  pinocchio::computeJointKinematicHessians(submodel_, subdata_);
 }
 
 template <typename ConfigVectorType, typename TangentVectorType>
@@ -232,7 +233,7 @@ inline void CKC::computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc) {
   assert(Jckc.cols() == dimv_);
   (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc)).setZero();
   int sgn = 1;
-  for (int frame_idx : {frame_0_idx_, frame_1_idx_}) {
+  for (int frame_idx : {frame_0_idx_,frame_1_idx_}) {
     J_frame_.setZero();
     pinocchio::getFrameJacobian(submodel_, subdata_, frame_idx,
                                 pinocchio::LOCAL_WORLD_ALIGNED, J_frame_);
@@ -241,6 +242,32 @@ inline void CKC::computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc) {
         .noalias() += sgn * J_frame_.template topRows<2>();
     sgn *= -1;
   }
+}
+
+template <typename MatrixType>
+inline void CKC::computeConstrsaintForceDerivative(
+    const Eigen::Vector2d &g, const Eigen::MatrixBase<MatrixType> &dQdq) {
+  assert(dQdq.rows() == dimv_);
+  assert(dQdq.cols() == dimv_);
+  (const_cast<Eigen::MatrixBase<MatrixType> &>(dQdq)).setZero();
+  Eigen::Vector3d g_3d_world = Eigen::Vector3d::Zero();
+  g_3d_world.head<2>() = g;
+  Eigen::Vector3d g_3d_local =
+      subdata_.oMf[frame_0_idx_].rotation().transpose() * g_3d_world;
+
+  (const_cast<Eigen::MatrixBase<MatrixType> &>(dQdq))
+      .template middleCols<4>(start_v_idx_)
+      .noalias() +=
+      subdata_.kinematic_hessians[joint_0_idx_] *
+      (pinocchio::Force(g_3d_local, Eigen::Vector3d::Zero()).toVector());
+
+  g_3d_local = subdata_.oMf[frame_1_idx_].rotation().transpose() * g_3d_world;
+  (const_cast<Eigen::MatrixBase<MatrixType> &>(dQdq))
+      .template middleCols<4>(start_v_idx_)
+      .noalias() -=
+      subdata_.kinematic_hessians[frame_1_idx_] *
+      (jXf_1_.act(pinocchio::Force(g_3d_local, Eigen::Vector3d::Zero()))
+           .toVector()); // minus sign on force 2
 }
 } // namespace robotoc
 

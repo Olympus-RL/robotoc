@@ -25,11 +25,18 @@ CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
 
   frame_0_idx_ = model.getFrameId(info.frame_0);
   frame_1_idx_ = model.getFrameId(info.frame_1);
+  joint_0_idx_ = model.frames[frame_0_idx_].parent;
+  joint_1_idx_ = model.frames[frame_1_idx_].parent;
+  if (frame_0_idx_ == frame_1_idx_) {
+    throw ::std::invalid_argument(
+        "[CKC] invalid argument: frame_0 and frame_1 must be different!");
+  }
   ::std::vector<pinocchio::JointIndex> joints2keepID;
   joints2keepID.push_back(model.frames[frame_0_idx_].parent);
   joints2keepID.push_back(model.frames[frame_0_idx_].parent - 1);
   joints2keepID.push_back(model.frames[frame_1_idx_].parent);
   joints2keepID.push_back(model.frames[frame_1_idx_].parent - 1);
+
   ::std::vector<pinocchio::JointIndex> joints2lockID;
   for (int i = 1; i < model.njoints; i++) {
     if (::std::find(joints2keepID.begin(), joints2keepID.end(), i) ==
@@ -41,6 +48,15 @@ CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
       *::std::min_element(joints2keepID.begin(), joints2keepID.end());
   start_q_idx_ = model.joints[start_joint_idx].idx_q();
   start_v_idx_ = model.joints[start_joint_idx].idx_v();
+  common_ancestor_joint_idx_ = start_joint_idx - 1;
+  std::string common_ancetsor_frame_name;
+  for (auto &frame : model.frames) {
+    if (frame.parent == common_ancestor_joint_idx_) {
+      common_ancetsor_frame_name = frame.name;
+      break;
+    }
+  }
+
   Eigen::VectorXd q = ::pinocchio::neutral(model);
   q.segment(3, 4) << std::sqrt(2.0) / 2, 0.0, 0.0,
       std::sqrt(2.0) /
@@ -52,10 +68,9 @@ CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
       submodel_.getFrameId(info.frame_0); // update the frae idx with the sub
                                           // model since they might have changed
   frame_1_idx_ = submodel_.getFrameId(info.frame_1);
-  jXf_0_ = model.frames[frame_0_idx_].placement;
-  jXf_1_ = model.frames[frame_1_idx_].placement;
-  joint_0_idx_ = model.frames[frame_0_idx_].parent;
-  joint_1_idx_ = model.frames[frame_1_idx_].parent;
+  jXf_0_ = submodel_.frames[frame_0_idx_].placement;
+  jXf_1_ = submodel_.frames[frame_1_idx_].placement;
+  common_ancestor_frame_idx_ = submodel_.getFrameId(common_ancetsor_frame_name);
 
   v_frame_.setZero();
   a_frame_.setZero();
@@ -79,11 +94,25 @@ void CKC::computeJointForceFromConstraintForce(
   g_3d_world.head<2>() = g;
   Eigen::Vector3d g_3d_local =
       subdata_.oMf[frame_0_idx_].rotation().transpose() * g_3d_world;
+
   joint_forces[joint_0_idx_] +=
       jXf_0_.act(pinocchio::Force(g_3d_local, Eigen::Vector3d::Zero()));
+
   g_3d_local = subdata_.oMf[frame_1_idx_].rotation().transpose() * g_3d_world;
+
   joint_forces[joint_1_idx_] += jXf_1_.act(pinocchio::Force(
-      -g_3d_local, Eigen::Vector3d::Zero())); // minus sign on force 2
+      -g_3d_local,
+      Eigen::Vector3d::Zero())); // minus sign on force 2 ///note the force
+                                 // needs to be reset somwhere else
+
+  //// correction term
+
+  joint_forces[common_ancestor_joint_idx_] += pinocchio::Force(
+      Eigen::Vector3d::Zero(),
+      subdata_.oMf[common_ancestor_frame_idx_].rotation().transpose() *
+          ((subdata_.oMf[frame_1_idx_].translation() -
+            subdata_.oMf[frame_0_idx_].translation())
+               .cross(g_3d_world))); // zero out the force
 }
 
 void CKC::computeGeneralizedForceFromConstraintForce(const Eigen::Vector2d &g,

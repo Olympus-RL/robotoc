@@ -87,10 +87,10 @@ public:
   void computeGeneralizedForceFromConstraintForce(
       const Eigen::Vector2d &constraint_force, Eigen::VectorXd &Q);
 
-  template <typename MatrixType1>
+  template <typename MatrixType>
   void
   computeConstrsaintForceDerivative(const Eigen::Vector2d &g,
-                                    const Eigen::MatrixBase<MatrixType1> &dQdq);
+                                    const Eigen::MatrixBase<MatrixType> &dQdq);
 
   ///
   /// @brief Computes the residual of the contact constraints considered by the
@@ -166,7 +166,8 @@ private:
   CKCInfo info_;
 
   int dimq_, dimv_, start_q_idx_, start_v_idx_, frame_0_idx_, frame_1_idx_,
-      joint_0_idx_, joint_1_idx_;
+      joint_0_idx_, joint_1_idx_, common_ancestor_frame_idx_,
+      common_ancestor_joint_idx_;
   // classical velocity of frame
   ::pinocchio::Model submodel_;
   ::pinocchio::Data subdata_;
