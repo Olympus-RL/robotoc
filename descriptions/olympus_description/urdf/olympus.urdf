@@ -1480,7 +1480,7 @@
     name="FrontRight_ankle_outer_joint"
     type="fixed">
     <origin
-      xyz="0 0 -0.296"
+      xyz="0 0 -0.29929"
       rpy="0 0 0" />
     <parent
       link="FrontRight_shank_outer" />
@@ -1495,7 +1495,7 @@
     name="FrontRight_ankle_inner_joint"
     type="fixed">
     <origin
-      xyz="0 0 -0.296"
+      xyz="0 0 -0.29610"
       rpy="0 0 0" />
     <parent
       link="FrontRight_shank_inner" />
@@ -1511,7 +1511,7 @@
       name="BackLeft_ankle_outer_joint"
       type="fixed">
       <origin
-        xyz="0 0 -0.296"
+        xyz="0 0 -0.29929"
         rpy="0 0 0" />
       <parent
         link="BackLeft_shank_outer" />
@@ -1526,7 +1526,7 @@
       name="BackLeft_ankle_inner_joint"
       type="fixed">
       <origin
-        xyz="0 0 -0.296"
+        xyz="0 0 -0.29610"
         rpy="0 0 0" />
       <parent
         link="BackLeft_shank_inner" />
@@ -1543,7 +1543,7 @@
       name="BackRight_ankle_outer_joint"
       type="fixed">
       <origin
-        xyz="0 0 -0.296"
+        xyz="0 0 -0.29929"
         rpy="0 0 0" />
       <parent
         link="BackRight_shank_outer" />
@@ -1558,7 +1558,7 @@
       name="BackRight_ankle_inner_joint"
       type="fixed">
       <origin
-        xyz="0 0 -0.296"
+        xyz="0 0 -0.29610"
         rpy="0 0 0" />
       <parent
         link="BackRight_shank_inner" />
