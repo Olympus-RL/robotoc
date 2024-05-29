@@ -22,6 +22,7 @@ SplitSolution::setContactStatus(const ImpactStatus &contact_status) {
   is_contact_active_ = contact_status.isImpactActive();
   dimf_ckc_ = 0;
   dimf_contact_ = contact_status.dimf();
+  dimf_ = dimf_contact_ + dimf_ckc_;
 }
 
 inline void SplitSolution::setContactStatus(const SplitSolution &other) {
@@ -82,7 +83,8 @@ inline void SplitSolution::set_f_vector() {
     if (is_contact_active_[i]) {
       switch (contact_types_[i]) {
       case ContactType::PointContact:
-        f_contact[i].template head<3>() = f_stack_.template segment<3>(segment_begin);
+        f_contact[i].template head<3>() =
+            f_stack_.template segment<3>(segment_begin);
         segment_begin += 3;
         break;
       case ContactType::SurfaceContact:
@@ -115,7 +117,8 @@ inline void SplitSolution::set_mu_stack() {
     if (is_contact_active_[i]) {
       switch (contact_types_[i]) {
       case ContactType::PointContact:
-        mu_stack_.template segment<3>(segment_begin) = mu_contact[i].template head<3>();
+        mu_stack_.template segment<3>(segment_begin) =
+            mu_contact[i].template head<3>();
         segment_begin += 3;
         break;
       case ContactType::SurfaceContact:
@@ -139,7 +142,8 @@ inline void SplitSolution::set_mu_vector() {
     if (is_contact_active_[i]) {
       switch (contact_types_[i]) {
       case ContactType::PointContact:
-        mu_contact[i].template head<3>() = mu_stack_.template segment<3>(segment_begin);
+        mu_contact[i].template head<3>() =
+            mu_stack_.template segment<3>(segment_begin);
         segment_begin += 3;
         break;
       case ContactType::SurfaceContact:
