@@ -335,7 +335,7 @@ inline void Robot::computeBaumgarteResidual(
       dimf += 6;
     }
   }
-  assert(dimf == contact_status.dimf_contact());
+  assert(dimf == contact_status.dimf());
 }
 
 template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
