@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
   Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.dimq());
   Eigen::VectorXd v = Eigen::VectorXd::Zero(robot.dimv());
   Eigen::VectorXd a = Eigen::VectorXd::Zero(robot.dimv());
+
   q = robot.generateFeasibleConfiguration();
   v.setRandom();
   a.setRandom();
@@ -72,13 +73,29 @@ int main(int argc, char *argv[]) {
   robot.updateKinematics(q, v, a);
   Eigen::VectorXd ckc_res = Eigen::VectorXd::Zero(robot.dimg());
   robot.computeCKCResidual(ckc_res);
-  std::cout << "ckc_res: " << ckc_res.transpose() << std::endl;
 
   auto contact_status = robot.createContactStatus();
+  for (int i = 0; i < robot.maxNumContacts(); ++i) {
+    contact_status.activateContact(i);
+  }
 
-  robot.setContactForces(contact_status, std::vector<robotoc::Robot::Vector6d>(
-                                             robot.maxNumContacts(),
-                                             robotoc::Robot::Vector6d::Zero()));
+  Eigen::VectorXd f_stack = Eigen::VectorXd::Zero(robot.max_dimf());
+  std::vector<robotoc::Robot::Vector6d> f_contact;
+  int segement_start = 0;
+  for (int i = 0; i < robot.maxNumContacts(); ++i) {
+    f_contact.push_back(robotoc::Robot::Vector6d::Random());
+    f_stack.segment<3>(segement_start) = f_contact.back().head(3);
+    segement_start += 3;
+  }
+  robot.setContactForces(contact_status, f_contact);
+
+  Eigen::VectorXd bamagrate_res = Eigen::VectorXd::Zero(robot.max_dimf());
+  Eigen::MatrixXd dcdq = Eigen::MatrixXd::Zero(robot.max_dimf(), robot.dimv());
+  Eigen::MatrixXd dcdv = Eigen::MatrixXd::Zero(robot.max_dimf(), robot.dimv());
+  Eigen::MatrixXd dcda = Eigen::MatrixXd::Zero(robot.max_dimf(), robot.dimv());
+
+  robot.computeBaumgarteResidual(contact_status, bamagrate_res);
+  robot.computeBaumgarteDerivatives(contact_status, dcdq, dcdv, dcda);
 
   std::vector<robotoc::Robot::Vector2d> ckc_forces;
   Eigen::VectorXd g(robot.dimg());
@@ -101,7 +118,7 @@ int main(int argc, char *argv[]) {
              Eigen::VectorXd::Zero(robot.dimv()), tau);
   robot.computeCKCJacobian(Jckc);
 
-  Eigen::MatrixXd tau_ref = -Jckc.transpose() * g;
+  Eigen::MatrixXd tau_ref = -Jckc.transpose() * g - dcda.transpose() * f_stack;
   std::cout << "tau: " << tau.transpose() << std::endl;
   std::cout << "tau_ref: " << tau_ref.transpose() << std::endl;
   std::cout << "tau - tau_ref norm: " << (tau - tau_ref).norm() << std::endl;
