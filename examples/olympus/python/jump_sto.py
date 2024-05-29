@@ -147,6 +147,10 @@ ocp_solver.solve(t, q, v)
 print("KKT error after convergence: ", ocp_solver.KKT_error(t, q, v))
 print(ocp_solver.get_solver_statistics())
 
+if not robot.numCKCs() == 0:
+    print("print fuckk")
+    exit()
+else: print("good shit")
 
 
 # Plot results

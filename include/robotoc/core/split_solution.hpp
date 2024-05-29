@@ -114,7 +114,8 @@ public:
   /// and the lower 3 elements are the angular momentum.
   /// Size is  Robot::maxNumContacts().
   ///
-  std::vector<Vector6d> f;
+  std::vector<Vector6d> f_contact;
+
   std::vector<Vector2d> f_ckc;
 
   ///
@@ -162,7 +163,7 @@ public:
   /// and the lower 3 elements are w.r.t. the angular contact acceleration.
   /// Size is Robot::maxNumContacts().
   ///
-  std::vector<Vector6d> mu;
+  std::vector<Vector6d> mu_contact;
   std::vector<Vector2d> mu_ckc;
 
   ///

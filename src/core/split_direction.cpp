@@ -4,56 +4,41 @@
 
 namespace robotoc {
 
-SplitDirection::SplitDirection(const Robot& robot) 
-  : dx(Eigen::VectorXd::Zero(2*robot.dimv())),
-    du(Eigen::VectorXd::Zero(robot.dimu())),
-    dlmdgmm(Eigen::VectorXd::Zero(2*robot.dimv())),
-    dnu_passive(Eigen::VectorXd::Zero(robot.dim_passive())),
-    dts(0.0),
-    dts_next(0.0),
-    daf_full_(Eigen::VectorXd::Zero(robot.dimv()+robot.max_dimf())),
-    dbetamu_full_(Eigen::VectorXd::Zero(robot.dimv()+robot.max_dimf())),
-    dxi_full_(Eigen::VectorXd::Zero(robot.max_dimf())),
-    dimv_(robot.dimv()), 
-    dimu_(robot.dimu()), 
-    dim_passive_(robot.dim_passive()), 
-    dimf_(0), 
-    dims_(0) {
-}
+SplitDirection::SplitDirection(const Robot &robot)
+    : dx(Eigen::VectorXd::Zero(2 * robot.dimv())),
+      du(Eigen::VectorXd::Zero(robot.dimu())),
+      dlmdgmm(Eigen::VectorXd::Zero(2 * robot.dimv())),
+      dnu_passive(Eigen::VectorXd::Zero(robot.dim_passive())), dts(0.0),
+      dts_next(0.0),
+      daf_full_(Eigen::VectorXd::Zero(robot.dimv() + robot.max_dimf())),
+      dbetamu_full_(Eigen::VectorXd::Zero(robot.dimv() + robot.max_dimf())),
+      dxi_full_(Eigen::VectorXd::Zero(robot.max_dimf_contact())),
+      dimv_(robot.dimv()), dimu_(robot.dimu()),
+      dim_passive_(robot.dim_passive()), dimf_(robot.dimf_ckc()), dims_(0),
+      dimf_contact_(0), dimf_ckc_(robot.dimf_ckc()) {}
 
-
-SplitDirection::SplitDirection() 
-  : dx(),
-    du(),
-    dlmdgmm(),
-    dnu_passive(),
-    dts(0.0),
-    dts_next(0.0),
-    daf_full_(),
-    dbetamu_full_(),
-    dxi_full_(),
-    dimv_(0), 
-    dimu_(0), 
-    dim_passive_(0), 
-    dimf_(0), 
-    dims_(0) {
-}
-
+SplitDirection::SplitDirection()
+    : dx(), du(), dlmdgmm(), dnu_passive(), dts(0.0), dts_next(0.0),
+      daf_full_(), dbetamu_full_(), dxi_full_(), dimv_(0), dimu_(0),
+      dim_passive_(0), dimf_(0), dims_(0) {}
 
 bool SplitDirection::isDimensionConsistent() const {
-  if (dx.size() != 2*dimv_) return false;
-  if (du.size() != dimu_) return false;
-  if (dlmdgmm.size() != 2*dimv_) return false;
-  if (dnu_passive.size() != dim_passive_) return false;
+  if (dx.size() != 2 * dimv_)
+    return false;
+  if (du.size() != dimu_)
+    return false;
+  if (dlmdgmm.size() != 2 * dimv_)
+    return false;
+  if (dnu_passive.size() != dim_passive_)
+    return false;
   return true;
 }
 
-
-bool SplitDirection::isApprox(const SplitDirection& other) const {
+bool SplitDirection::isApprox(const SplitDirection &other) const {
   assert(isDimensionConsistent());
   assert(other.isDimensionConsistent());
-  assert(dimf()==other.dimf());
-  assert(dims()==other.dims());
+  assert(dimf() == other.dimf());
+  assert(dims() == other.dims());
   if (!dx.isApprox(other.dx)) {
     return false;
   }
@@ -80,10 +65,9 @@ bool SplitDirection::isApprox(const SplitDirection& other) const {
   other_vec << other.dts, other.dts_next;
   if (!vec.isApprox(other_vec)) {
     return false;
-  } 
+  }
   return true;
 }
-
 
 void SplitDirection::setRandom() {
   assert(isDimensionConsistent());
@@ -98,61 +82,54 @@ void SplitDirection::setRandom() {
   dts_next = Eigen::VectorXd::Random(1)[0];
 }
 
-
-void SplitDirection::setRandom(const ContactStatus& contact_status) {
+void SplitDirection::setRandom(const ContactStatus &contact_status) {
   setContactDimension(contact_status.dimf());
   setRandom();
 }
 
-
-void SplitDirection::setRandom(const ImpactStatus& impact_status) {
+void SplitDirection::setRandom(const ImpactStatus &impact_status) {
   setContactDimension(impact_status.dimf());
   setRandom();
 }
 
-
-void SplitDirection::setRandom(const ContactStatus& contact_status, 
-                               const ImpactStatus& impact_status) {
+void SplitDirection::setRandom(const ContactStatus &contact_status,
+                               const ImpactStatus &impact_status) {
   setContactDimension(contact_status.dimf());
   setSwitchingConstraintDimension(impact_status.dimf());
   setRandom();
 }
 
-
-SplitDirection SplitDirection::Random(const Robot& robot) {
+SplitDirection SplitDirection::Random(const Robot &robot) {
   SplitDirection d(robot);
   d.setRandom();
   return d;
 }
 
-
-SplitDirection SplitDirection::Random(const Robot& robot, 
-                                      const ContactStatus& contact_status) {
+SplitDirection SplitDirection::Random(const Robot &robot,
+                                      const ContactStatus &contact_status) {
   SplitDirection d(robot);
   d.setRandom(contact_status);
   return d;
 }
 
-
-SplitDirection SplitDirection::Random(const Robot& robot, 
-                                      const ImpactStatus& impact_status) {
+SplitDirection SplitDirection::Random(const Robot &robot,
+                                      const ImpactStatus &impact_status) {
   SplitDirection d(robot);
   d.setRandom(impact_status);
   return d;
 }
 
-
-SplitDirection SplitDirection::Random(const Robot& robot, 
-                                      const ContactStatus& contact_status, 
-                                      const ImpactStatus& impact_status) {
+SplitDirection SplitDirection::Random(const Robot &robot,
+                                      const ContactStatus &contact_status,
+                                      const ImpactStatus &impact_status) {
   SplitDirection d(robot);
   d.setRandom(contact_status, impact_status);
   return d;
 }
 
-
-void SplitDirection::disp(std::ostream& os) const {
-  os << "SplitDirection:" << "\n";
+void SplitDirection::disp(std::ostream &os) const {
+  os << "SplitDirection:"
+     << "\n";
   os << "  dq       = " << dq().transpose() << "\n";
   os << "  dv       = " << dv().transpose() << "\n";
   os << "  du       = " << du.transpose() << "\n";
@@ -171,10 +148,9 @@ void SplitDirection::disp(std::ostream& os) const {
   }
 }
 
-
-std::ostream& operator<<(std::ostream& os, const SplitDirection& d) {
+std::ostream &operator<<(std::ostream &os, const SplitDirection &d) {
   d.disp(os);
   return os;
 }
 
-} // namespace robotoc 
+} // namespace robotoc

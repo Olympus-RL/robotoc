@@ -10,12 +10,12 @@ SplitSolution::SplitSolution(const Robot &robot)
       a(Eigen::VectorXd::Zero(robot.dimv())),
       dv(Eigen::VectorXd::Zero(robot.dimv())),
       u(Eigen::VectorXd::Zero(robot.dimu())),
-      f(robot.maxNumContacts(), Vector6d::Zero()),
+      f_contact(robot.maxNumContacts(), Vector6d::Zero()),
       f_ckc(robot.numCKCs(), Vector2d::Zero()),
       lmd(Eigen::VectorXd::Zero(robot.dimv())),
       gmm(Eigen::VectorXd::Zero(robot.dimv())),
       beta(Eigen::VectorXd::Zero(robot.dimv())),
-      mu(robot.maxNumContacts(), Vector6d::Zero()),
+      mu_contact(robot.maxNumContacts(), Vector6d::Zero()),
       mu_ckc(robot.numCKCs(), Vector2d::Zero()),
       nu_passive(Eigen::VectorXd::Zero(robot.dim_passive())),
       f_stack_(Eigen::VectorXd::Zero(robot.max_dimf())),
@@ -25,8 +25,7 @@ SplitSolution::SplitSolution(const Robot &robot)
                                       // constraints
       has_floating_base_(robot.hasFloatingBase()),
       contact_types_(robot.contactTypes()),
-      is_contact_active_(robot.maxNumContacts(), false),
-      dimf_(robot.dimf_ckc()), dims_(0),
+      is_contact_active_(robot.maxNumContacts(), false), dimf_(0), dims_(0),
       max_num_contacts_(robot.maxNumContacts()), num_ckcs_(robot.numCKCs()),
       dimf_ckc_(0), dimf_contact_(0), max_dimf_ckc_(robot.dimf_ckc()) {
   if (robot.hasFloatingBase()) {
@@ -37,12 +36,10 @@ SplitSolution::SplitSolution(const Robot &robot)
 }
 
 SplitSolution::SplitSolution()
-    : q(), v(), a(), dv(), u(), f(), f_ckc(), lmd(), gmm(), beta(), mu(),
-      mu_ckc(), nu_passive(), f_stack_(), mu_stack_(), xi_stack_(),
-      has_floating_base_(false), contact_types_(), is_contact_active_(),
-      dimf_(0), dims_(0), max_num_contacts_(0) {
-  assert(false);
-}
+    : q(), v(), a(), dv(), u(), f_contact(), f_ckc(), lmd(), gmm(), beta(),
+      mu_contact(), mu_ckc(), nu_passive(), f_stack_(), mu_stack_(),
+      xi_stack_(), has_floating_base_(false), contact_types_(),
+      is_contact_active_(), dimf_(0), dims_(0), max_num_contacts_(0) {}
 
 void SplitSolution::integrate(const Robot &robot, const double step_size,
                               const SplitDirection &d, const bool impact) {
@@ -84,8 +81,11 @@ void SplitSolution::copyPrimal(const SplitSolution &other) {
   a = other.a;
   dv = other.dv;
   u = other.u;
-  for (int i = 0; i < f.size(); ++i) {
-    f[i] = other.f[i];
+  for (int i = 0; i < f_contact.size(); ++i) {
+    f_contact[i] = other.f_contact[i];
+  }
+  for (int i = 0; i < f_ckc.size(); ++i) {
+    f_ckc[i] = other.f_ckc[i];
   }
   for (int i = 0; i < f_ckc.size(); ++i) {
     f_ckc[i] = other.f_ckc[i];
@@ -102,8 +102,11 @@ void SplitSolution::copyDual(const SplitSolution &other) {
   if (has_floating_base_) {
     nu_passive = other.nu_passive;
   }
-  for (int i = 0; i < f.size(); ++i) {
-    mu[i] = other.mu[i];
+  for (int i = 0; i < f_contact.size(); ++i) {
+    mu_contact[i] = other.mu_contact[i];
+  }
+  for (int i = 0; i < f_ckc.size(); ++i) {
+    mu_ckc[i] = other.mu_ckc[i];
   }
   for (int i = 0; i < f_ckc.size(); ++i) {
     mu_ckc[i] = other.mu_ckc[i];
@@ -170,10 +173,10 @@ bool SplitSolution::isApprox(const SplitSolution &other) const {
         if (!other.isContactActive(i)) {
           return false;
         }
-        if (f[i].isApprox(other.f[i])) {
+        if (f_contact[i].isApprox(other.f_contact[i])) {
           return false;
         }
-        if (!mu[i].isApprox(other.mu[i])) {
+        if (!mu_contact[i].isApprox(other.mu_contact[i])) {
           return false;
         }
       } else {

@@ -47,13 +47,13 @@ PYBIND11_MODULE(split_solution, m) {
       .def_readwrite("u", &SplitSolution::u)
       .def_readwrite("a", &SplitSolution::a)
       .def_readwrite("dv", &SplitSolution::dv)
-      .def_readwrite("f", &SplitSolution::f)
-      //.def_readwrite("f_ckc", &SplitSolution::f_ckc)
+      .def_readwrite("f_contact", &SplitSolution::f_contact)
+      .def_readwrite("f_ckc", &SplitSolution::f_ckc)
       .def_readwrite("lmd", &SplitSolution::lmd)
       .def_readwrite("gmm", &SplitSolution::gmm)
       .def_readwrite("beta", &SplitSolution::beta)
-      .def_readwrite("mu", &SplitSolution::mu)
-      //.def_readwrite("mu_ckc", &SplitSolution::mu_ckc)
+      .def_readwrite("mu_contact", &SplitSolution::mu_contact)
+      .def_readwrite("mu_ckc", &SplitSolution::mu_ckc)
       .def_readwrite("nu_passive", &SplitSolution::nu_passive)
       .def_property(
           "f_stack",
