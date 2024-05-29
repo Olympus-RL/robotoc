@@ -57,6 +57,7 @@ void TerminalStage::evalOCP(Robot& robot, const GridInfo& grid_info,
   robot.updateKinematics(s.q, s.v);
   kkt_residual.setContactDimension(0);
   kkt_residual.setSwitchingConstraintDimension(0);
+  kkt_residual.setCKCDimension(0); // sure about this?
   kkt_residual.setZero();
   data.performance_index.setZero();
   // eval cost and constraints
@@ -81,6 +82,8 @@ void TerminalStage::evalKKT(Robot& robot, const GridInfo& grid_info,
   kkt_matrix.setSwitchingConstraintDimension(0);
   kkt_residual.setContactDimension(0);
   kkt_residual.setSwitchingConstraintDimension(0);
+  kkt_residual.setCKCDimension(0); // sure about this?
+  kkt_residual.setZero();
   kkt_matrix.setZero();
   kkt_residual.setZero();
   data.performance_index.setZero();
@@ -112,6 +115,7 @@ void TerminalStage::expandPrimal(const GridInfo& grid_info, OCPData& data,
   // const auto& contact_status = contact_sequence_->contactStatus(grid_info.phase);
   // d.setContactDimension(contact_status.dimf());
   d.setContactDimension(0);
+  d.setCKCDimension(0);
   d.setSwitchingConstraintDimension(0);
   // constraints_->expandSlackAndDual(contact_status, data.constraints_data, d);
 }

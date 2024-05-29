@@ -51,7 +51,9 @@ public:
   ///
   ContactDynamicsData& operator=(ContactDynamicsData&&) noexcept = default;
 
-  void setContactDimension(const int dimf);
+  void setContactDimension(const int dimf_contact);
+
+  void setCKCDimension(const int dimf_ckc);
 
   void setSwitchingConstraintDimension(const int dims);
 
@@ -210,7 +212,7 @@ private:
                   MJtJinv_dIDCdqv_full_, Qafqv_full_, 
                   Qafu_full_full_, Phia_full_;
   Eigen::VectorXd IDC_full_, MJtJinv_IDC_full_, laf_full_, haf_full_;
-  int dimv_, dimu_, dimf_, dimvf_, dims_, dim_passive_;
+  int dimv_, dimu_, dimf_, dimvf_, dims_, dim_passive_,dimf_contact_,dimf_ckc_;
   bool has_floating_base_;
 
 };

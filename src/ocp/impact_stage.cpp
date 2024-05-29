@@ -60,6 +60,7 @@ void ImpactStage::evalOCP(Robot& robot, const GridInfo& grid_info,
   const auto& impact_status = contact_sequence_->impactStatus(grid_info.impact_index);
   robot.updateKinematics(s.q, s.v+s.dv);
   kkt_residual.setContactDimension(impact_status.dimf());
+  kkt_residual.setCKCDimension(0); // No CKC forces in impact dynamics
   kkt_residual.setSwitchingConstraintDimension(0);
   kkt_residual.setZero();
   data.performance_index.setZero();
@@ -88,8 +89,10 @@ void ImpactStage::evalKKT(Robot& robot, const GridInfo& grid_info,
   const auto& impact_status = contact_sequence_->impactStatus(grid_info.impact_index);
   robot.updateKinematics(s.q, s.v+s.dv);
   kkt_matrix.setContactDimension(impact_status.dimf());
+  kkt_matrix.setCKCDimension(0); // No CKC forces in impact dynamics
   kkt_matrix.setSwitchingConstraintDimension(0);
   kkt_residual.setContactDimension(impact_status.dimf());
+  kkt_residual.setCKCDimension(0); // No CKC forces in impact dynamics
   kkt_residual.setSwitchingConstraintDimension(0);
   kkt_matrix.setZero();
   kkt_residual.setZero();
@@ -127,6 +130,7 @@ void ImpactStage::expandPrimal(const GridInfo& grid_info, OCPData& data,
   assert(grid_info.type == GridType::Impact);
   const auto& impact_status = contact_sequence_->impactStatus(grid_info.impact_index);
   d.setContactDimension(impact_status.dimf());
+  d.setCKCDimension(0); // No CKC forces in impact dynamics
   d.setSwitchingConstraintDimension(0);
   expandImpactDynamicsPrimal(data.contact_dynamics_data, d);
   constraints_->expandSlackAndDual(impact_status, data.constraints_data, d);

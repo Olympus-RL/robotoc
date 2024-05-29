@@ -7,6 +7,7 @@ namespace robotoc {
 void evalImpactDynamics(Robot &robot, const ImpactStatus &impact_status,
                         const SplitSolution &s, ContactDynamicsData &data) {
   data.setContactDimension(impact_status.dimf());
+  data.setCKCDimension(0); // No CKC forces in impact dynamics
   robot.setImpactForces(impact_status, s.f_contact);
   robot.RNEAImpact(s.q, s.dv, data.ID_full());
   robot.computeImpactVelocityResidual(impact_status, data.C());

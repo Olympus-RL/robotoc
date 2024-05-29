@@ -5,13 +5,21 @@
 
 namespace robotoc {
 
-inline void ContactDynamicsData::setContactDimension(const int dimf) {
-  assert(dimf >= 0);
-  assert(dimf + dimv_ <= IDC_full_.size());
-  dimf_ = dimf;
+inline void ContactDynamicsData::setContactDimension(const int dimf_contact) {
+  assert(dimf_contact >= 0);
+  assert(dimf_contact + dimf_ckc_+ dimv_ <= IDC_full_.size());
+  dimf_contact_ = dimf_contact;
+  dimf_ = dimf_contact_ + dimf_ckc_;
   dimvf_ = dimv_ + dimf_;
 }
 
+inline void ContactDynamicsData::setCKCDimension(const int dimf_ckc) {
+  assert(dimf_ckc >= 0);
+  assert(dimf_contact_ + dimf_ckc + dimv_ <= IDC_full_.size());
+  dimf_ckc_ = dimf_ckc;
+  dimf_ = dimf_contact_ + dimf_ckc_;
+  dimvf_ = dimv_ + dimf_;
+}
 
 inline void ContactDynamicsData::setSwitchingConstraintDimension(const int dims) {
   assert(dims >= 0);

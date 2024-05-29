@@ -11,6 +11,7 @@ constexpr int dim_floating_base = 6;
 void evalContactDynamics(Robot &robot, const ContactStatus &contact_status,
                          const SplitSolution &s, ContactDynamicsData &data) {
   data.setContactDimension(contact_status.dimf());
+  data.setCKCDimension(robot.dimf_ckc());
   robot.setContactForces(contact_status, s.f_contact);
   robot.setCKCForces(s.f_ckc);
   robot.RNEA(s.q, s.v, s.a, data.ID_full());

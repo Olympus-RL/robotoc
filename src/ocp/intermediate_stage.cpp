@@ -63,6 +63,7 @@ void IntermediateStage::evalOCP(Robot &robot, const GridInfo &grid_info,
       contact_sequence_->contactStatus(grid_info.phase);
   robot.updateKinematics(s.q, s.v, s.a);
   kkt_residual.setContactDimension(contact_status.dimf());
+  kkt_residual.setCKCDimension(robot.dimf_ckc());
   kkt_residual.setZero();
   data.performance_index.setZero();
   // eval cost and constraints
@@ -100,6 +101,8 @@ void IntermediateStage::evalKKT(Robot &robot, const GridInfo &grid_info,
   robot.updateKinematics(s.q, s.v, s.a);
   kkt_matrix.setContactDimension(contact_status.dimf());
   kkt_residual.setContactDimension(contact_status.dimf());
+  kkt_matrix.setCKCDimension(robot.dimf_ckc());
+  kkt_residual.setCKCDimension(robot.dimf_ckc());
   kkt_matrix.setZero();
   kkt_residual.setZero();
   data.performance_index.setZero();
@@ -163,6 +166,7 @@ void IntermediateStage::expandPrimal(const GridInfo &grid_info, OCPData &data,
   const auto &contact_status =
       contact_sequence_->contactStatus(grid_info.phase);
   d.setContactDimension(contact_status.dimf());
+  d.setCKCDimension(data.contact_dynamics_data.dimf()-contact_status.dimf()); //this is a ugly workaround
   expandContactDynamicsPrimal(data.contact_dynamics_data, d);
   constraints_->expandSlackAndDual(contact_status, data.constraints_data, d);
 }
