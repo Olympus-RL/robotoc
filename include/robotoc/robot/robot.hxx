@@ -335,7 +335,7 @@ inline void Robot::computeBaumgarteResidual(
       dimf += 6;
     }
   }
-  assert(dimf == contact_status.dimf());
+  assert(dimf == contact_status.dimf_contact());
 }
 
 template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
@@ -510,7 +510,7 @@ inline void Robot::computeContactPositionDerivative(
 template <typename VectorType>
 inline void
 Robot::computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual) {
-  assert(residual.size() == dimg_);
+  assert(residual.size() == dimf_ckc_);
   (const_cast<Eigen::MatrixBase<VectorType> &>(residual)).setZero();
   int segment_start = 0;
   for (int i = 0; i < num_ckcs_; ++i) {
@@ -524,7 +524,7 @@ Robot::computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual) {
 template <typename MatrixType>
 inline void
 Robot::computeCKCJacobian(const Eigen::MatrixBase<MatrixType> &Jckc) {
-  assert(Jckc.rows() == dimg_);
+  assert(Jckc.rows() == dimf_ckc_);
   assert(Jckc.cols() == dimv_);
   (const_cast<Eigen::MatrixBase<MatrixType> &>(Jckc)).setZero();
   int segment_start = 0;

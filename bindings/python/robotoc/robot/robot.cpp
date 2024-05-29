@@ -19,14 +19,15 @@ PYBIND11_MODULE(robot, m) {
       .def(py::init<>())
       .def("get_ckc_residual",
            [](Robot &self) {
-             Eigen::VectorXd ckc_residual = Eigen::VectorXd::Zero(self.dimg());
+             Eigen::VectorXd ckc_residual =
+                 Eigen::VectorXd::Zero(self.dimf_ckc());
              self.computeCKCResidual(ckc_residual);
              return ckc_residual;
            })
       .def("get_ckc_jacobian",
            [](Robot &self) {
              Eigen::MatrixXd ckc_jacobian =
-                 Eigen::MatrixXd::Zero(self.dimg(), self.dimv());
+                 Eigen::MatrixXd::Zero(self.dimf_ckc(), self.dimv());
              self.computeCKCJacobian(ckc_jacobian);
              return ckc_jacobian;
            })
@@ -210,9 +211,10 @@ PYBIND11_MODULE(robot, m) {
       .def("dimv", &Robot::dimv)
       .def("dimu", &Robot::dimu)
       .def("max_dimf", &Robot::max_dimf)
-      .def("dimg", &Robot::dimg)
+      .def("dimf_ckc", &Robot::dimf_ckc)
       .def("dim_passive", &Robot::dim_passive)
       .def("has_floating_base", &Robot::hasFloatingBase)
+      .def("numCKCs", &Robot::numCKCs)
       .def("max_num_contacts", &Robot::maxNumContacts)
       .def("max_num_point_contacts", &Robot::maxNumPointContacts)
       .def("max_num_surface_contacts", &Robot::maxNumSurfaceContacts)
