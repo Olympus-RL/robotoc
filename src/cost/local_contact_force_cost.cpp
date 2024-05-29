@@ -84,7 +84,7 @@ void LocalContactForceCost::evalStageCostDerivatives(
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (contact_status.isContactActive(i)) {
       const auto &fl = s.f_contact[i].template head<3>();
-      kkt_residual.lf().template segment<3>(dimf_stack).array() +=
+      kkt_residual.lf_contact().template segment<3>(dimf_stack).array() +=
           grid_info.dt * f_weight_[i].array() *
           (fl.array() - f_ref_[i].array());
       switch (contact_types_[i]) {
@@ -108,8 +108,10 @@ void LocalContactForceCost::evalStageCostHessian(
   int dimf_stack = 0;
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (contact_status.isContactActive(i)) {
-      kkt_matrix.Qff().diagonal().template segment<3>(dimf_stack).noalias() +=
-          grid_info.dt * f_weight_[i];
+      kkt_matrix.Qff_contact()
+          .diagonal()
+          .template segment<3>(dimf_stack)
+          .noalias() += grid_info.dt * f_weight_[i];
       switch (contact_types_[i]) {
       case ContactType::PointContact:
         dimf_stack += 3;
@@ -168,7 +170,7 @@ void LocalContactForceCost::evalImpactCostDerivatives(
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (impact_status.isImpactActive(i)) {
       const auto &fl = s.f_contact[i].template head<3>();
-      kkt_residual.lf().template segment<3>(dimf_stack).array() +=
+      kkt_residual.lf_contact().template segment<3>(dimf_stack).array() +=
           fi_weight_[i].array() * (fl.array() - fi_ref_[i].array());
       switch (contact_types_[i]) {
       case ContactType::PointContact:
@@ -191,8 +193,10 @@ void LocalContactForceCost::evalImpactCostHessian(
   int dimf_stack = 0;
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (impact_status.isImpactActive(i)) {
-      kkt_matrix.Qff().diagonal().template segment<3>(dimf_stack).noalias() +=
-          fi_weight_[i];
+      kkt_matrix.Qff_contact()
+          .diagonal()
+          .template segment<3>(dimf_stack)
+          .noalias() += fi_weight_[i];
       switch (contact_types_[i]) {
       case ContactType::PointContact:
         dimf_stack += 3;

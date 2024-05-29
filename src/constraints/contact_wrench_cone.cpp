@@ -164,7 +164,7 @@ void ContactWrenchCone::evalDerivatives(Robot &robot,
     case ContactType::SurfaceContact:
       if (contact_status.isContactActive(i)) {
         const Eigen::MatrixXd &cone_i = data.J[i];
-        kkt_residual.lf().template segment<6>(dimf_stack).noalias() +=
+        kkt_residual.lf_contact().template segment<6>(dimf_stack).noalias() +=
             cone_i.transpose() * data.dual.template segment<17>(c_begin);
         dimf_stack += 6;
       }
@@ -194,11 +194,11 @@ void ContactWrenchCone::condenseSlackAndDual(
         const Eigen::MatrixXd &cone_i = data.J[i];
         data.r[0].array() = data.dual.template segment<17>(c_begin).array() /
                             data.slack.template segment<17>(c_begin).array();
-        kkt_matrix.Qff()
+        kkt_matrix.Qff_contact()
             .template block<6, 6>(dimf_stack, dimf_stack)
             .noalias() += cone_i.transpose() * data.r[0].asDiagonal() * cone_i;
         computeCondensingCoeffcient<17>(data, c_begin);
-        kkt_residual.lf().template segment<6>(dimf_stack).noalias() +=
+        kkt_residual.lf_contact().template segment<6>(dimf_stack).noalias() +=
             cone_i.transpose() * data.cond.template segment<17>(c_begin);
         dimf_stack += 6;
       }
@@ -231,7 +231,7 @@ void ContactWrenchCone::expandSlackAndDual(const ContactStatus &contact_status,
       if (contact_status.isContactActive(i)) {
         const Eigen::MatrixXd &cone_i = data.J[i];
         data.dslack.template segment<17>(c_begin).noalias() =
-            -cone_i * d.df().template segment<6>(dimf_stack) -
+            -cone_i * d.df_contact().template segment<6>(dimf_stack) -
             data.residual.template segment<17>(c_begin);
         computeDualDirection<17>(data, c_begin);
         dimf_stack += 6;

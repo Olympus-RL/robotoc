@@ -160,7 +160,7 @@ void ImpactFrictionCone::evalDerivatives(Robot &robot,
       // force expressed in the local frame.
       Eigen::MatrixXd &dgi_df = dg_df(data, i);
       dgi_df.noalias() = cone_local_i * robot.frameRotation(contact_frame_[i]);
-      kkt_residual.lf().template segment<3>(dimf_stack).noalias() +=
+      kkt_residual.lf_contact().template segment<3>(dimf_stack).noalias() +=
           dgi_df.transpose() * data.dual.template segment<5>(idx);
       switch (contact_types_[i]) {
       case ContactType::PointContact:
@@ -189,7 +189,7 @@ void ImpactFrictionCone::condenseSlackAndDual(
       const Eigen::MatrixXd &dgi_dq = dg_dq(data, i);
       const Eigen::MatrixXd &dgi_df = dg_df(data, i);
       kkt_residual.lq().noalias() += dgi_dq.transpose() * condi;
-      kkt_residual.lf().template segment<3>(dimf_stack).noalias() +=
+      kkt_residual.lf_contact().template segment<3>(dimf_stack).noalias() +=
           dgi_df.transpose() * condi;
       Eigen::MatrixXd &dfWi_dq = dfW_dq(data, i);
       Eigen::MatrixXd &r_dgi_df = r_dg_df(data, i);
@@ -200,10 +200,11 @@ void ImpactFrictionCone::condenseSlackAndDual(
       r_dgi_df.noalias() = ri.asDiagonal() * dgi_df;
       kkt_matrix.Qqq().noalias() +=
           dgi_dq.transpose() * dfWi_dq.template topRows<5>();
-      kkt_matrix.Qqf().template middleCols<3>(dimf_stack).noalias() +=
+      kkt_matrix.Qqf_contact().template middleCols<3>(dimf_stack).noalias() +=
           dgi_dq.transpose() * r_dgi_df;
-      kkt_matrix.Qff().template block<3, 3>(dimf_stack, dimf_stack).noalias() +=
-          dgi_df.transpose() * r_dgi_df;
+      kkt_matrix.Qff_contact()
+          .template block<3, 3>(dimf_stack, dimf_stack)
+          .noalias() += dgi_df.transpose() * r_dgi_df;
       switch (contact_types_[i]) {
       case ContactType::PointContact:
         dimf_stack += 3;
@@ -233,7 +234,8 @@ void ImpactFrictionCone::expandSlackAndDual(const ImpactStatus &impact_status,
       const Eigen::MatrixXd &dgi_dq = dg_dq(data, i);
       const Eigen::MatrixXd &dgi_df = dg_df(data, i);
       data.dslack.template segment<5>(idx).noalias() =
-          -dgi_dq * d.dq() - dgi_df * d.df().template segment<3>(dimf_stack) -
+          -dgi_dq * d.dq() -
+          dgi_df * d.df_contact().template segment<3>(dimf_stack) -
           data.residual.template segment<5>(idx);
       computeDualDirection<5>(data, idx);
       switch (contact_types_[i]) {
