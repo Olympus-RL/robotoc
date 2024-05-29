@@ -271,16 +271,16 @@ OCPSolver::getSolution(const std::string &name,
     for (int i = 0; i < time_discretization_.size(); ++i) {
       if ((time_discretization_[i].type == GridType::Impact) ||
           (time_discretization_[i].type == GridType::Terminal)) {
-        sol.push_back(Eigen::VectorXd::Zero(robot.max_dimf()));
+        sol.push_back(Eigen::VectorXd::Zero(robot.max_dimf_contact()));
       } else {
-        Eigen::VectorXd f(Eigen::VectorXd::Zero(robot.max_dimf()));
+        Eigen::VectorXd f(Eigen::VectorXd::Zero(robot.max_dimf_contact()));
         robot.updateFrameKinematics(s_[i].q);
         for (int j = 0; j < robot.maxNumContacts(); ++j) {
           if (s_[i].isContactActive(j)) {
             const int contact_frame = robot.contactFrames()[j];
-            robot.transformFromLocalToWorld(contact_frame,
-                                            s_[i].f[j].template head<3>(),
-                                            f.template segment<3>(3 * j));
+            robot.transformFromLocalToWorld(
+                contact_frame, s_[i].f_contact[j].template head<3>(),
+                f.template segment<3>(3 * j));
           }
         }
         sol.push_back(f);
@@ -291,12 +291,13 @@ OCPSolver::getSolution(const std::string &name,
     for (int i = 0; i < time_discretization_.size(); ++i) {
       if ((time_discretization_[i].type == GridType::Impact) ||
           (time_discretization_[i].type == GridType::Terminal)) {
-        sol.push_back(Eigen::VectorXd::Zero(robot.max_dimf()));
+        sol.push_back(Eigen::VectorXd::Zero(robot.max_dimf_contact()));
       } else {
         Eigen::VectorXd f(Eigen::VectorXd::Zero(robot.max_dimf()));
         for (int j = 0; j < robot.maxNumContacts(); ++j) {
           if (s_[i].isContactActive(j)) {
-            f.template segment<3>(3 * j) = s_[i].f[j].template head<3>();
+            f.template segment<3>(3 * j) =
+                s_[i].f_contact[j].template head<3>();
           }
         }
         sol.push_back(f);
@@ -362,11 +363,11 @@ void OCPSolver::setSolution(const std::string &name,
           time_discretization_[i].type == GridType::Terminal)
         continue;
       if (value.size() == 3) {
-        for (auto &ef : s_[i].f) {
+        for (auto &ef : s_[i].f_contact) {
           ef.template head<3>() = value.template head<3>();
         }
       } else {
-        for (auto &ef : s_[i].f) {
+        for (auto &ef : s_[i].f_contact) {
           ef = value.template head<6>();
         }
       }
@@ -381,11 +382,11 @@ void OCPSolver::setSolution(const std::string &name,
       if (time_discretization_[i].type != GridType::Impact)
         continue;
       if (value.size() == 3) {
-        for (auto &ef : s_[i].f) {
+        for (auto &ef : s_[i].f_contact) {
           ef.template head<3>() = value.template head<3>();
         }
       } else {
-        for (auto &ef : s_[i].f) {
+        for (auto &ef : s_[i].f_contact) {
           ef = value.template head<6>();
         }
       }

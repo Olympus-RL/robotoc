@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
   a.setRandom();
 
   robot.updateKinematics(q, v, a);
-  Eigen::VectorXd ckc_res = Eigen::VectorXd::Zero(robot.dimg());
+  Eigen::VectorXd ckc_res = Eigen::VectorXd::Zero(robot.dimf_ckc());
   robot.computeCKCResidual(ckc_res);
 
   auto contact_status = robot.createContactStatus();
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
   robot.computeBaumgarteDerivatives(contact_status, dcdq, dcdv, dcda);
 
   std::vector<robotoc::Robot::Vector2d> ckc_forces;
-  Eigen::VectorXd g(robot.dimg());
+  Eigen::VectorXd g(robot.dimf_ckc());
   int g_idx = 0;
   for (int i = 0; i < robot.numCKCs(); ++i) {
 
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 
   robot.setCKCForces(ckc_forces);
 
-  Eigen::MatrixXd Jckc = Eigen::MatrixXd::Zero(robot.dimg(), robot.dimv());
+  Eigen::MatrixXd Jckc = Eigen::MatrixXd::Zero(robot.dimf_ckc(), robot.dimv());
   Eigen::VectorXd tau(robot.dimv());
   tau.setZero();
 

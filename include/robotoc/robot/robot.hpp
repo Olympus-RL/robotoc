@@ -757,10 +757,14 @@ public:
   int dimu() const;
 
   ///
-  /// @brief Returns the maximum dimension of the contacts.
+  /// @brief Returns the maximum dimension of the contacts and ckc forces.
   /// @return The maximum dimension of the contacts.
   ///
   int max_dimf() const;
+
+  int max_dimf_contact() const;
+
+  int dimf_ckc() const;
 
   int dimg() const;
 
@@ -959,17 +963,15 @@ private:
   pinocchio::Model model_, impact_model_;
   pinocchio::Data data_, impact_data_;
   pinocchio::container::aligned_vector<pinocchio::Force> fjoint_;
-  pinocchio::container::aligned_vector<pinocchio::Force> gjoint_;
 
-  Eigen::VectorXd Q_ckcs_;
   Eigen::MatrixXd dimpact_dv_;
   // Contact models
   aligned_vector<PointContact> point_contacts_;
   aligned_vector<SurfaceContact> surface_contacts_;
   aligned_vector<CKC> ckcs_;
   // Robot model variables
-  int dimq_, dimv_, dimu_, dim_passive_, max_dimf_, max_num_contacts_, dimg_,
-      num_ckcs_, max_dimC_;
+  int dimq_, dimv_, dimu_, dim_passive_, max_dimf_, max_num_contacts_,
+      max_dimf_contact_, num_ckcs_, dimf_ckc_;
   RobotProperties properties_;
   Eigen::VectorXd joint_effort_limit_, joint_velocity_limit_,
       lower_joint_position_limit_, upper_joint_position_limit_;
