@@ -312,10 +312,16 @@ template <typename VectorType>
 inline void Robot::computeBaumgarteResidual(
     const ContactStatus &contact_status,
     const Eigen::MatrixBase<VectorType> &baumgarte_residual) {
-  assert(baumgarte_residual.size() == contact_status.dimf());
+  assert(baumgarte_residual.size() == contact_status.dimf() + dimf_ckc());
   const int num_point_contacts = point_contacts_.size();
   const int num_surface_contacts = surface_contacts_.size();
   int dimf = 0;
+  for (int i = 0; i < num_ckcs_; i++) {
+    ckcs_[i].computeBaumgarteResidual(
+        (const_cast<Eigen::MatrixBase<VectorType> &>(baumgarte_residual))
+            .template segment<2>(dimf));
+    dimf += 2;
+  }
   for (int i = 0; i < num_point_contacts; ++i) {
     if (contact_status.isContactActive(i)) {
       point_contacts_[i].computeBaumgarteResidual(
@@ -335,7 +341,7 @@ inline void Robot::computeBaumgarteResidual(
       dimf += 6;
     }
   }
-  assert(dimf == contact_status.dimf());
+  assert(dimf == contact_status.dimf() + dimf_ckc());
 }
 
 template <typename MatrixType1, typename MatrixType2, typename MatrixType3>
@@ -344,15 +350,25 @@ inline void Robot::computeBaumgarteDerivatives(
     const Eigen::MatrixBase<MatrixType1> &baumgarte_partial_dq,
     const Eigen::MatrixBase<MatrixType2> &baumgarte_partial_dv,
     const Eigen::MatrixBase<MatrixType3> &baumgarte_partial_da) {
-  assert(baumgarte_partial_dq.rows() == contact_status.dimf());
+  assert(baumgarte_partial_dq.rows() == contact_status.dimf() + dimf_ckc());
   assert(baumgarte_partial_dq.cols() == dimv_);
-  assert(baumgarte_partial_dv.rows() == contact_status.dimf());
+  assert(baumgarte_partial_dv.rows() == contact_status.dimf() + dimf_ckc());
   assert(baumgarte_partial_dv.cols() == dimv_);
-  assert(baumgarte_partial_da.rows() == contact_status.dimf());
+  assert(baumgarte_partial_da.rows() == contact_status.dimf() + dimf_ckc());
   assert(baumgarte_partial_da.cols() == dimv_);
   const int num_point_contacts = point_contacts_.size();
   const int num_surface_contacts = surface_contacts_.size();
   int dimf = 0;
+  for (int i = 0; i < num_ckcs_; i++) {
+    ckcs_[i].computeBaumgarteDerivatives(
+        (const_cast<Eigen::MatrixBase<MatrixType1> &>(baumgarte_partial_dq))
+            .block(dimf, 0, 2, dimv_),
+        (const_cast<Eigen::MatrixBase<MatrixType2> &>(baumgarte_partial_dv))
+            .block(dimf, 0, 2, dimv_),
+        (const_cast<Eigen::MatrixBase<MatrixType3> &>(baumgarte_partial_da))
+            .block(dimf, 0, 2, dimv_));
+    dimf += 2;
+  }
   for (int i = 0; i < num_point_contacts; ++i) {
     if (contact_status.isContactActive(i)) {
       point_contacts_[i].computeBaumgarteDerivatives(
@@ -603,7 +619,7 @@ Robot::RNEADerivatives(const Eigen::MatrixBase<ConfigVectorType> &q,
   assert(dRNEA_partial_dv.rows() == dimv_);
   assert(dRNEA_partial_da.cols() == dimv_);
   assert(dRNEA_partial_da.rows() == dimv_);
-  if (max_num_contacts_) {
+  if (max_num_contacts_ + num_ckcs_ > 0) {
     pinocchio::computeRNEADerivatives(
         model_, data_, q, v, a, fjoint_,
         const_cast<Eigen::MatrixBase<MatrixType1> &>(dRNEA_partial_dq),
