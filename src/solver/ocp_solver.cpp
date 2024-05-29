@@ -370,7 +370,7 @@ void OCPSolver::setSolution(const std::string &name,
           ef = value.template head<6>();
         }
       }
-      s_[i].set_gf_stack();
+      s_[i].set_f_stack();
     }
   } else if (name == "lmd") {
     if ((value.size() != 3) && (value.size() != 6)) {
@@ -389,7 +389,7 @@ void OCPSolver::setSolution(const std::string &name,
           ef = value.template head<6>();
         }
       }
-      s_[i].set_gf_stack();
+      s_[i].set_f_stack();
     }
   } else if (name == "u") {
     for (int i = 0; i < time_discretization_.size(); ++i) {
@@ -453,11 +453,11 @@ void OCPSolver::resizeData() {
     const auto &grid = time_discretization_[i];
     if (grid.type == GridType::Intermediate || grid.type == GridType::Lift) {
       s_[i].setContactStatus(contact_sequence_->contactStatus(grid.phase));
-      s_[i].set_gf_stack();
+      s_[i].set_f_stack();
     } else if (grid.type == GridType::Impact) {
       s_[i].setContactStatus(
           contact_sequence_->impactStatus(grid.impact_index));
-      s_[i].set_gf_stack();
+      s_[i].set_f_stack();
     }
     if (grid.switching_constraint) {
       const auto &grid_next_next = time_discretization_.grid(i + 2);
