@@ -82,9 +82,6 @@ SplitKKTResidual::lf() const {
 }
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitKKTResidual::lf_contact() {
-  if (dimf_ckc_ != 8) {
-    std::cout << "dimf_ckc = " << dimf_ckc_ << std::endl;
-  }
   return lf_full_.segment(dimf_ckc_, dimf_contact_);
 }
 

@@ -39,7 +39,7 @@ void condenseImpactDynamics(Robot &robot, const ImpactStatus &impact_status,
                             SplitKKTResidual &kkt_residual) {
   robot.computeMJtJinv(data.dIDddv, data.dCdv(), data.MJtJinv());
   const int dimv = robot.dimv();
-  const int dimf = impact_status.dimf();
+  const int dimf = data.dimf();
   data.MJtJinv_dIDCdqv().leftCols(dimv).noalias() =
       data.MJtJinv() * data.dIDCdqv().leftCols(dimv);
   data.MJtJinv_dIDCdqv().topRightCorner(dimv, dimv).noalias() =

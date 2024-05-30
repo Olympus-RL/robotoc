@@ -171,6 +171,7 @@ void FrictionCone::evalDerivatives(Robot &robot,
       }
     }
   }
+  assert(dimf_stack == kkt_residual.lf_contact().size());
 }
 
 void FrictionCone::condenseSlackAndDual(const ContactStatus &contact_status,
@@ -215,6 +216,10 @@ void FrictionCone::condenseSlackAndDual(const ContactStatus &contact_status,
       }
     }
   }
+  assert(dimf_stack == kkt_residual.lf_contact().size());
+  assert(dimf_stack == kkt_matrix.Qff_contact().cols());
+  assert(dimf_stack == kkt_matrix.Qff_contact().rows());
+  assert(dimf_stack == kkt_matrix.Qqf_contact().cols());
 }
 
 void FrictionCone::expandSlackAndDual(const ContactStatus &contact_status,
@@ -248,6 +253,7 @@ void FrictionCone::expandSlackAndDual(const ContactStatus &contact_status,
       }
     }
   }
+  assert(dimf_stack == d.df_contact().size());
 }
 
 int FrictionCone::dimc() const { return dimc_; }

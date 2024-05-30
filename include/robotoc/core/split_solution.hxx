@@ -10,7 +10,6 @@ namespace robotoc {
 inline void
 SplitSolution::setContactStatus(const ContactStatus &contact_status) {
   assert(contact_status.maxNumContacts() == is_contact_active_.size());
-  assert(dimf_ckc_ == 0);
   is_contact_active_ = contact_status.isContactActive();
   dimf_ckc_ = max_dimf_ckc_;
   dimf_contact_ = contact_status.dimf();

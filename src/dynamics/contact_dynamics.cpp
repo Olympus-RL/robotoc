@@ -57,7 +57,7 @@ void condenseContactDynamics(Robot &robot, const ContactStatus &contact_status,
   const int dimv = robot.dimv();
   const int dimu = robot.dimu();
   const int dim_passive = robot.dim_passive();
-  const int dimf = contact_status.dimf();
+  const int dimf = data.dimf();
   robot.computeMJtJinv(data.dIDda, data.dCda(), data.MJtJinv());
   data.MJtJinv_dIDCdqv().noalias() = data.MJtJinv() * data.dIDCdqv();
   data.MJtJinv_IDC().noalias() = data.MJtJinv() * data.IDC();

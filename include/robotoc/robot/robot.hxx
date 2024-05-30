@@ -395,7 +395,7 @@ inline void Robot::computeBaumgarteDerivatives(
       dimf += 6;
     }
   }
-  assert(dimf == contact_status.dimf());
+  assert(dimf == contact_status.dimf() + dimf_ckc());
 }
 
 template <typename VectorType>
@@ -535,6 +535,7 @@ Robot::computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual) {
             .template segment<2>(segment_start));
     segment_start += 2;
   }
+  assert(segment_start == dimf_ckc_);
 }
 
 template <typename MatrixType>

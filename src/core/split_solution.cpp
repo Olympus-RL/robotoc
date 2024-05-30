@@ -31,8 +31,6 @@ SplitSolution::SplitSolution(const Robot &robot)
   if (robot.hasFloatingBase()) {
     q.coeffRef(6) = 1.0;
   }
-  assert(robot.dimf_ckc() == 0);
-  assert(robot.numCKCs() == 0);
 }
 
 SplitSolution::SplitSolution()
