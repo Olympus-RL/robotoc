@@ -16,6 +16,7 @@ inline void SplitKKTResidual::setContactDimension(const int dimf_contact) {
 
 inline void SplitKKTResidual::setCKCDimension(const int dimf_ckc) {
   assert(dimf_ckc >= 0);
+
   dimf_ckc_ = dimf_ckc;
   dimf_ = dimf_contact_ + dimf_ckc_;
 }
@@ -81,6 +82,9 @@ SplitKKTResidual::lf() const {
 }
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitKKTResidual::lf_contact() {
+  if (dimf_ckc_ != 8) {
+    std::cout << "dimf_ckc = " << dimf_ckc_ << std::endl;
+  }
   return lf_full_.segment(dimf_ckc_, dimf_contact_);
 }
 

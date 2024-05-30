@@ -72,7 +72,7 @@ void FrictionConeTest::test_isFeasible(
       if (contact_status.isContactActive(i)) {
         Eigen::Vector3d f_world = Eigen::Vector3d::Zero();
         robot.transformFromLocalToWorld(robot.contactFrames()[i],
-                                        s.f[i].template head<3>(), f_world);
+                                        s.f_contact[i].template head<3>(), f_world);
         Eigen::VectorXd res = Eigen::VectorXd::Zero(5);
         FrictionCone::frictionConeResidual(mu, f_world, contact_surface, res);
         if (res.maxCoeff() > 0) {
@@ -98,7 +98,7 @@ void FrictionConeTest::test_setSlack(
   for (int i = 0; i < contact_status.maxNumContacts(); ++i) {
     Eigen::Vector3d f_world = Eigen::Vector3d::Zero();
     robot.transformFromLocalToWorld(robot.contactFrames()[i],
-                                    s.f[i].template head<3>(), f_world);
+                                    s.f_contact[i].template head<3>(), f_world);
     FrictionCone::frictionConeResidual(mu, f_world, contact_surface,
                                        data_ref.residual.segment(5 * i, 5));
     data_ref.slack.segment(5 * i, 5) = -data_ref.residual.segment(5 * i, 5);
@@ -129,7 +129,7 @@ void FrictionConeTest::test_evalConstraint(
     if (contact_status.isContactActive(i)) {
       Eigen::Vector3d f_world = Eigen::Vector3d::Zero();
       robot.transformFromLocalToWorld(robot.contactFrames()[i],
-                                      s.f[i].template head<3>(), f_world);
+                                      s.f_contact[i].template head<3>(), f_world);
       FrictionCone::frictionConeResidual(mu, f_world, contact_surface,
                                          data_ref.residual.segment(5 * i, 5));
       data_ref.residual.template segment<5>(5 * i) +=

@@ -12,7 +12,7 @@ def calcualate_joint_states(robot, contact_pos :Mapping[str,NDArray],base_pose: 
     alpha = 1.0
     max_dt = 10*np.pi/180
     num_contacts = len(contact_pos)
-    dim_ckc = robot.dimg()
+    dim_ckc = robot.dimf_ckc()
     n_joints = robot.dimv() -6
     if theta_guess is  None:
         theta = np.zeros(n_joints)

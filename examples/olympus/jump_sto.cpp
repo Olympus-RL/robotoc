@@ -109,6 +109,8 @@ int main(int argc, char *argv[]) {
   constraints->add("joint_torques_upper", joint_torques_upper);
   constraints->add("friction_cone", friction_cone);
 
+
+
   // Create the contact sequence
   auto contact_sequence = std::make_shared<robotoc::ContactSequence>(robot);
   const double mu = 0.7;
