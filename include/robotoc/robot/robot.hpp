@@ -560,6 +560,24 @@ public:
       const Eigen::MatrixBase<MatrixType> &position_partial_dq);
 
   template <typename VectorType>
+  void computeContactPositionResidual(
+      const ContactStatus &contact_status,
+      const Eigen::MatrixBase<VectorType> &position_residual);
+
+  ///
+  /// @brief Computes the partial derivative of the contact position at the
+  /// impact. Before calling this  function, updateKinematics() must be called.
+  /// @param[in] impact_status Impact status.
+  /// @param[out] position_partial_dq The result of the partial derivative
+  /// with respect to the configuaration. Rows must be at least 3. Cols must
+  /// be Robot::dimv().
+  ///
+  template <typename MatrixType>
+  void computeContactPositionDerivative(
+      const ContactStatus &contact_status,
+      const Eigen::MatrixBase<MatrixType> &position_partial_dq);
+
+  template <typename VectorType>
   void computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual);
 
   template <typename MatrixType>

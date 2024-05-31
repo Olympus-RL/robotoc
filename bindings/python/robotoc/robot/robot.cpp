@@ -31,6 +31,22 @@ PYBIND11_MODULE(robot, m) {
              self.computeCKCJacobian(ckc_jacobian);
              return ckc_jacobian;
            })
+      .def("get_contact_position_residual",
+           [](Robot &self, robotoc::ContactStatus &contact_status) {
+             Eigen::VectorXd contact_residual =
+                 Eigen::VectorXd::Zero(contact_status.dimf());
+             self.computeContactPositionResidual(contact_status,
+                                                 contact_residual);
+             return contact_residual;
+           })
+      .def("get_contact_position_jacobian",
+           [](Robot &self, robotoc::ContactStatus &contact_status) {
+             Eigen::MatrixXd contact_jacobian =
+                 Eigen::MatrixXd::Zero(contact_status.dimf(), self.dimv());
+             self.computeContactPositionDerivative(contact_status,
+                                                   contact_jacobian);
+             return contact_jacobian;
+           })
       .def(
           "rnea",
           [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
@@ -97,7 +113,7 @@ PYBIND11_MODULE(robot, m) {
           },
           py::arg("q"), py::arg("v"))
       .def(
-          "update_kinemtaics",
+          "update_kinematics",
           [](Robot &self, const Eigen::VectorXd &q, const Eigen::VectorXd &v,
              const Eigen::VectorXd &a) { self.updateKinematics(q, v, a); },
           py::arg("q"), py::arg("v"), py::arg("a"))

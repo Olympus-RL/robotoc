@@ -524,6 +524,66 @@ inline void Robot::computeContactPositionDerivative(
 }
 
 template <typename VectorType>
+inline void Robot::computeContactPositionResidual(
+    const ContactStatus &contact_status,
+    const Eigen::MatrixBase<VectorType> &position_residual) {
+  assert(position_residual.size() == contact_status.dimf());
+  const int num_point_contacts = point_contacts_.size();
+  const int num_surface_contacts = surface_contacts_.size();
+  int dimf = 0;
+  for (int i = 0; i < num_point_contacts; ++i) {
+    if (contact_status.isContactActive(i)) {
+      point_contacts_[i].computeContactPositionResidual(
+          model_, data_, contact_status.contactPosition(i),
+          (const_cast<Eigen::MatrixBase<VectorType> &>(position_residual))
+              .template segment<3>(dimf));
+      dimf += 3;
+    }
+  }
+  for (int i = 0; i < num_surface_contacts; ++i) {
+    if (contact_status.isContactActive(i + num_point_contacts)) {
+      surface_contacts_[i].computeContactPositionResidual(
+          model_, data_,
+          contact_status.contactPlacement(i + num_point_contacts),
+          (const_cast<Eigen::MatrixBase<VectorType> &>(position_residual))
+              .template segment<6>(dimf));
+      dimf += 6;
+    }
+  }
+  assert(dimf == contact_status.dimf());
+}
+
+template <typename MatrixType>
+inline void Robot::computeContactPositionDerivative(
+    const ContactStatus &contact_status,
+    const Eigen::MatrixBase<MatrixType> &position_partial_dq) {
+  assert(position_partial_dq.rows() == contact_status.dimf());
+  assert(position_partial_dq.cols() == dimv_);
+  const int num_point_contacts = point_contacts_.size();
+  const int num_surface_contacts = surface_contacts_.size();
+  int dimf = 0;
+  for (int i = 0; i < num_point_contacts; ++i) {
+    if (contact_status.isContactActive(i)) {
+      point_contacts_[i].computeContactPositionDerivative(
+          model_, data_,
+          (const_cast<Eigen::MatrixBase<MatrixType> &>(position_partial_dq))
+              .block(dimf, 0, 3, dimv_));
+      dimf += 3;
+    }
+  }
+  for (int i = 0; i < num_surface_contacts; ++i) {
+    if (contact_status.isContactActive(i + num_point_contacts)) {
+      surface_contacts_[i].computeContactPositionDerivative(
+          model_, data_,
+          (const_cast<Eigen::MatrixBase<MatrixType> &>(position_partial_dq))
+              .block(dimf, 0, 6, dimv_));
+      dimf += 6;
+    }
+  }
+  assert(dimf == contact_status.dimf());
+}
+
+template <typename VectorType>
 inline void
 Robot::computeCKCResidual(const Eigen::MatrixBase<VectorType> &residual) {
   assert(residual.size() == dimf_ckc_);
