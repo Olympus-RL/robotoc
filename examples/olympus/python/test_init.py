@@ -1,6 +1,6 @@
 import robotoc
 from tojr import OptJumpTowr
-from initialization.calculate_joint_states import calcualate_joint_states
+from initialization import calcualate_joint_states,make_sol_feaseble
 import numpy as np
 import math
 import copy
@@ -76,7 +76,7 @@ q_standing = q.copy()
 
 cost = robotoc.CostFunction()
 q_ref = q_standing.copy()
-q_ref[2] = 0.15
+q_ref[2] = 0.25
 q_weight = np.array([1.0, 1.0, 1000.0, 1.0, 1.0, 1.0, 
                         10.0, .0, 0.0, .0, 0.0, 
                         10.0, .0, 0.0, .0, 0.0,
@@ -132,11 +132,28 @@ q=q_standing
 v = np.zeros(robot.dimv())
 t=t0
 
+ocp_solver.discretize(t)
+td = ocp_solver.get_time_discretization()
+
+q_traj = []
+h_0 = q_standing[2]
+h = h_0
+dh = (h_0 - 0.25)/len(td)
+for i in range(len(td)):
+    qi = q_standing.copy()
+    qi[2] = h
+    q_traj.append(qi)
+    h -= dh
+
+sol_guess = make_sol_feaseble(robot,q_traj,td,contact_sequence)
+ocp_solver.set_solution(sol_guess)
+
+
+
 ocp_solver.set_solution("q",q_standing)
 f_init = np.array([0,0,0.25])*robot.total_weight()
 ocp_solver.set_solution("f",f_init)
 ocp_solver.set_solution("v",v)
-ocp_solver.discretize(t)
 ocp_solver.init_constraints()
 print("Initial KKT error: ", ocp_solver.KKT_error(t, q, v))
 ocp_solver.solve(t0, q, v)
@@ -145,14 +162,13 @@ print(ocp_solver.get_solver_statistics())
 
 
 
-Q = ocp_solver.get_solution('q')
-q_last = Q[-1]
-print("height: ", q_last[2])
+
 # Display results
 viewer = robotoc.utils.TrajectoryViewer(model_info=model_info, viewer_type='gepetto')
 viewer.set_contact_info(mu=mu)
 viewer.display(ocp_solver.get_time_discretization(), 
                ocp_solver.get_solution('q'), 
                ocp_solver.get_solution('f', 'WORLD'))
+
 
 
