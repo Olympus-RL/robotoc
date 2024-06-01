@@ -234,7 +234,6 @@ td = ocp_solver.get_time_discretization()
 
 sol = make_sol_feaseble(robot,q_traj,td,contact_sequence)
 ocp_solver.set_solution(sol)
-
 ocp_solver.init_constraints()
 print("Initial KKT error: ", ocp_solver.KKT_error(t0, q, v))
 ocp_solver.solve(t0, q, v)

@@ -25,30 +25,24 @@ model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inn
 model_info.contact_inv_damping = 0.0
 
 robot = robotoc.Robot(model_info)
-lower_limits = np.pi/180*np.array([ -20, -20., -30., -120, -200,  #back left
-                                    -20, -120, -30., -10., -200, #back right
-                                    -20, -20., -200, -120,  -30, #front left
-                                    -20, -20., -200, -10.,  -30]) #front right
+lower_limits = np.pi/180*np.array([ -20, -20., -30., -120, -240,  #back left
+                                    -20, -120, -30., -20., -240, #back right
+                                    -20, -20., -240, -120,  -30, #front left
+                                    -20, -20., -240, -20.,  -30]) #front right
                                           ###inner###  ###outer###
-upper_limits = np.pi/180*np.array([ 20, 120, 200, 10., 30.,  #back left
-                                    20, 20., 200, 120, 30., #back right
-                                    20, 120, 30., 10., 200, #front left
-                                    20, 120, 30., 120, 200]) #front right
+upper_limits = np.pi/180*np.array([ 20, 120, 240, 20., 30.,  #back left
+                                    20, 20., 240, 120, 30., #back right
+                                    20, 120, 30., 20., 240, #front left
+                                    20, 120, 30., 120, 240]) #front right
                                         ###inner###  ###outer###
-#lower_limits[:] = -3.0
-#upper_limits[:] = 3.0
+#lower_limits[:] = -4.0
+#upper_limits[:] = 4.0
 
 
 robot.set_lower_joint_position_limit(lower_limits)
 robot.set_upper_joint_position_limit(upper_limits)
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
-joint_efforts_limit = np.full(robot.dimv()-6, 24.0)
-knee_idx = []
-idx =0
-for i in range(4):
-    knee_idx.append(i*5+2)
-    knee_idx.append(i*5+4)
-joint_efforts_limit[knee_idx] = 0.001
+joint_efforts_limit = np.full(robot.dimu(), 24.0)
 robot.set_joint_effort_limit(joint_efforts_limit)
 robot.set_gravity(-3.72)
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
@@ -221,7 +215,7 @@ ocp = robotoc.OCP(robot=robot, cost=cost, constraints=constraints,
 solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 0.1
 solver_options.max_dt_mesh = T/N 
-solver_options.max_iter = 800
+solver_options.max_iter = 1
 solver_options.nthreads = 4
 solver_options.initial_sto_reg_iter = 0
 solver_options.enable_line_search=False

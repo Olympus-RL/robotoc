@@ -159,6 +159,7 @@ public:
   /// @return const reference to the contact model info.
   ///
   const CKCInfo &ckcInfo() const;
+  const std::pair<int, int> passive_idx() const;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -168,6 +169,8 @@ private:
   int dimq_, dimv_, start_q_idx_, start_v_idx_, frame_0_idx_, frame_1_idx_,
       joint_0_idx_, joint_1_idx_, common_ancestor_frame_idx_,
       common_ancestor_joint_idx_;
+  std::pair<int, int> passive_idx_;
+
   // classical velocity of frame
   ::pinocchio::Model submodel_;
   ::pinocchio::Data subdata_;

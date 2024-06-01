@@ -217,6 +217,8 @@ PYBIND11_MODULE(robot, m) {
             self.normalizeConfiguration(q);
           },
           py::arg("q"))
+      .def("S", &Robot::S)
+      .def("Sbar", &Robot::Sbar)
       .def("create_contact_status", &Robot::createContactStatus)
       .def("create_impact_status", &Robot::createImpactStatus)
       .def("frame_id", &Robot::frameId, py::arg("frame_name"))

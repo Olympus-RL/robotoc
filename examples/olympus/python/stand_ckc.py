@@ -1,6 +1,6 @@
 import robotoc
 from tojr import OptJumpTowr
-from initialization.calculate_joint_states import calcualate_joint_states
+from initialization import calcualate_joint_states,make_sol_feaseble
 import numpy as np
 import math
 import copy
@@ -18,21 +18,15 @@ model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inn
                     robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step),
                     robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step),
                     robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step)]
-
 robot = robotoc.Robot(model_info)
 robot.set_lower_joint_position_limit(np.full(robot.dimv()-6, -2.0))
 robot.set_upper_joint_position_limit(np.full(robot.dimv()-6, 2.0))
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
-joint_efforts_limit = np.full(robot.dimv()-6, 24.0)
-knee_idx = []
-idx =0
-for i in range(4):
-    knee_idx.append(i*5+2)
-    knee_idx.append(i*5+4)
-joint_efforts_limit[knee_idx] = 0.0001
+joint_efforts_limit = np.full(robot.dimu(), 24.0)
 robot.set_joint_effort_limit(joint_efforts_limit)
 robot.set_gravity(-3.72)
 
+print("dimu: ", robot.dimu())
 
 
 dt = 0.05
@@ -76,7 +70,6 @@ q_standing = q.copy()
 
 cost = robotoc.CostFunction()
 q_ref = q_standing.copy()
-q_ref[2] = 0.15
 q_weight = np.array([1.0, 1.0, 1000.0, 1.0, 1.0, 1.0, 
                         10.0, .0, 0.0, .0, 0.0, 
                         10.0, .0, 0.0, .0, 0.0,
@@ -102,10 +95,10 @@ joint_velocity_upper  = robotoc.JointVelocityUpperLimit(robot)
 joint_torques_lower   = robotoc.JointTorquesLowerLimit(robot)
 joint_torques_upper   = robotoc.JointTorquesUpperLimit(robot)
 friction_cone         = robotoc.FrictionCone(robot)
-constraints.add("joint_position_lower", joint_position_lower)
-constraints.add("joint_position_upper", joint_position_upper)
-constraints.add("joint_velocity_lower", joint_velocity_lower)
-constraints.add("joint_velocity_upper", joint_velocity_upper)
+#constraints.add("joint_position_lower", joint_position_lower)
+#constraints.add("joint_position_upper", joint_position_upper)
+#constraints.add("joint_velocity_lower", joint_velocity_lower)
+#constraints.add("joint_velocity_upper", joint_velocity_upper)
 constraints.add("joint_torques_lower", joint_torques_lower)
 constraints.add("joint_torques_upper", joint_torques_upper)
 constraints.add("friction_cone", friction_cone)
@@ -133,11 +126,15 @@ v = np.zeros(robot.dimv())
 t=t0
 
 ocp_solver.set_solution("q",q_standing)
-f_init = np.array([0,0,0.25])*robot.total_weight()
-ocp_solver.set_solution("f",f_init)
-ocp_solver.set_solution("v",v)
+#f_init = np.array([0,0,0.25])*robot.total_weight()
+#ocp_solver.set_solution("f",f_init)
+#ocp_solver.set_solution("v",v)
 ocp_solver.discretize(t)
 ocp_solver.init_constraints()
+sol = make_sol_feaseble(robot,ocp_solver.get_solution('q'),ocp_solver.get_time_discretization(),contact_sequence)
+ocp_solver.set_solution(sol)
+
+
 print("Initial KKT error: ", ocp_solver.KKT_error(t, q, v))
 ocp_solver.solve(t0, q, v)
 print("KKT error after convergence: ", ocp_solver.KKT_error(t, q, v))

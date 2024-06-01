@@ -19,8 +19,8 @@ model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inn
                     robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step)]
 
 robot = robotoc.Robot(model_info)
-robot.set_lower_joint_position_limit(np.full(robot.dimv()-6, -2.0))
-robot.set_upper_joint_position_limit(np.full(robot.dimv()-6, 2.0))
+robot.set_lower_joint_position_limit(np.full(robot.dimv()-6, -3.0))
+robot.set_upper_joint_position_limit(np.full(robot.dimv()-6, 3.0))
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
 joint_efforts_limit = np.full(robot.dimv()-6, 24.0)
 knee_idx = []
@@ -47,13 +47,20 @@ t0 = 0.
 
 # Create the cost function
 cost = robotoc.CostFunction()
-q_standing = np.array([0., 0., 0.5, 0.0, 0., 0., 1.0, 
-                         0.0,  0.2,  .4, -.2, -.4,  #back left
-                        -0.0, -0.2,  .4,  .2, -.4, #back right
-                        -0.0,  0.2, -.4, -.2,  .4, #front left
-                         0.0,  0.2, -.4,  .2,  .4]) #front right
+q_standing = np.array([0., 0., 0.3, 0.0, 0., 0., 1.0, 
+                         0.0,  1.2,  1.9, -.2, -.4,  #back left
+                        -0.0, -1.2,  1.9,  .2, -.4, #back right
+                        -0.0,  1.2, -1.9, -.2,  .4, #front left
+                         0.0,  1.2, -1.9,  .2,  .4]) #front right
                               ###inner###  ###outer###
 
+#q_standing = np.array([0., 0., 0.3, 0.0, 0., 0., 1.0, 
+#                         0.0,  .8,  2.8, -1., -1.4,  #back left
+#                        -0.0, -.8,  2.8,  1., -1.4, #back right
+#                        -0.0,  .8, -2.8, -1.,  1.4, #front left
+#                         0.0,  .8, -2.8,  1.,  1.4]) #front right
+#                              ###inner###  ###outer###
+#
 
 
 # Create the contact sequence
@@ -68,6 +75,8 @@ x3d0_RF = robot.frame_position('FrontRight_paw')
 x3d0_RH = robot.frame_position('BackRight_paw')
 contact_positions = {'FrontLeft_paw': x3d0_LF, 'BackLeft_paw': x3d0_LH, 'FrontRight_paw': x3d0_RF, 'BackRight_paw': x3d0_RH} 
 
+print(contact_positions)
+
 contact_status_standing = robot.create_contact_status()
 contact_status_standing.activate_contacts(['FrontLeft_paw', 'BackLeft_paw', 'FrontRight_paw', 'BackRight_paw'])
 contact_status_standing.set_contact_placements(contact_positions)
@@ -75,20 +84,20 @@ contact_status_standing.set_friction_coefficients(friction_coefficients)
 contact_sequence.init(contact_status_standing)
 
 contact_status_flying = robot.create_contact_status()
-contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=False)
+contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=True)
 
 contact_positions['FrontLeft_paw'] += jump_length
 contact_positions['BackLeft_paw'] += jump_length
 contact_positions['FrontRight_paw'] += jump_length
 contact_positions['BackRight_paw'] += jump_length
 contact_status_standing.set_contact_placements(contact_positions)
-contact_sequence.push_back(contact_status_standing, t0+take_off_duration+flight_duration, sto=False)
+contact_sequence.push_back(contact_status_standing, t0+take_off_duration+flight_duration, sto=True)
 
 
 theta = q_standing[7:].copy()
 q = q_standing.copy()
 pose = q_standing[:7].copy()
-theta = calcualate_joint_states(robot, contact_status_standing,pose, theta)
+theta = calcualate_joint_states(robot, contact_sequence.contact_status(0),pose, theta)
 q[:7] = pose
 q[7:] = theta
 q_standing = q.copy()

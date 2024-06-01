@@ -37,6 +37,9 @@ CKC::CKC(const ::pinocchio::Model &model, const CKCInfo &info)
   joints2keepID.push_back(model.frames[frame_1_idx_].parent);
   joints2keepID.push_back(model.frames[frame_1_idx_].parent - 1);
 
+  passive_idx_ = std::make_pair(model.joints[joint_0_idx_].idx_v(),
+                                model.joints[joint_1_idx_].idx_v());
+
   ::std::vector<pinocchio::JointIndex> joints2lockID;
   for (int i = 1; i < model.njoints; i++) {
     if (::std::find(joints2keepID.begin(), joints2keepID.end(), i) ==
@@ -143,5 +146,7 @@ void CKC::setBaumgarteGains(const double baumgarte_position_gain,
 }
 
 const CKCInfo &CKC::ckcInfo() const { return info_; };
+
+const std::pair<int, int> CKC::passive_idx() const { return passive_idx_; }
 
 } // namespace robotoc

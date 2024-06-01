@@ -1,14 +1,13 @@
 #include "robotoc/robot/robot.hpp"
-
 #include <stdexcept>
 
 namespace robotoc {
 
 Robot::Robot(const RobotModelInfo &info)
     : info_(info), model_(), impact_model_(), data_(), impact_data_(),
-      fjoint_(), dimpact_dv_(), point_contacts_(), surface_contacts_(),
-      dimq_(0), dimv_(0), dimu_(0), dim_passive_(0), max_dimf_(0),
-      max_num_contacts_(0), properties_(), joint_effort_limit_(),
+      fjoint_(), dimpact_dv_(), S_(), Sbar_(), point_contacts_(),
+      surface_contacts_(), dimq_(0), dimv_(0), dimu_(0), dim_passive_(0),
+      max_dimf_(0), max_num_contacts_(0), properties_(), joint_effort_limit_(),
       joint_velocity_limit_(), lower_joint_position_limit_(),
       upper_joint_position_limit_() {
   switch (info.base_joint_type) {
@@ -16,6 +15,9 @@ Robot::Robot(const RobotModelInfo &info)
     pinocchio::urdf::buildModel(info.urdf_path,
                                 pinocchio::JointModelFreeFlyer(), model_);
     dim_passive_ = 6; // this should be changed when integrating floating base
+    for (int i = 0; i < dim_passive_; ++i) {
+      passive_idx_.push_back(i);
+    }
     break;
   case BaseJointType::FixedBase:
     pinocchio::urdf::buildModel(info.urdf_path, model_);
@@ -25,12 +27,56 @@ Robot::Robot(const RobotModelInfo &info)
     std::runtime_error("[Robot] invalid argument: invalid base joint type");
     break;
   }
+
+  ckcs_.clear();
+  for (const auto &e : info.ckcs) {
+    ckcs_.push_back(CKC(model_, e));
+  }
+
+  for (const auto &e : ckcs_) {
+    dim_passive_ += 2;
+    passive_idx_.push_back(e.passive_idx().first);
+    passive_idx_.push_back(e.passive_idx().second);
+  }
+  assert(dim_passive_ == passive_idx_.size());
+
+  dimu_ = model_.nv - dim_passive_;
+  S_.resize(dimu_, model_.nv);
+  S_.setZero();
+  Sbar_.resize(dim_passive_, model_.nv);
+  Sbar_.setZero();
+  Eigen::MatrixXd I = Eigen::MatrixXd::Identity(model_.nv, model_.nv);
+
+  int sbar_idx = 0;
+  int s_idx = 0;
+  for (int i = 0; i < model_.nv; ++i) {
+    if (std::find(passive_idx_.begin(), passive_idx_.end(), i) !=
+        passive_idx_.end()) {
+      Sbar_.row(sbar_idx) = I.row(i);
+      sbar_idx++;
+    } else {
+      S_.row(s_idx) = I.row(i);
+      s_idx++;
+      active_idx_.push_back(i);
+    }
+  }
+
+  assert(sbar_idx == dim_passive_);
+  assert(s_idx == dimu_);
+
+  std::cout << "S^T" << std::endl;
+  std::cout << S_.transpose() << std::endl;
+  std::cout << "=========================" << std::endl;
+  std::cout << "Sbar" << std::endl;
+  std::cout << Sbar_ << std::endl;
+
   impact_model_ = model_;
   impact_model_.gravity.linear().setZero();
   data_ = pinocchio::Data(model_);
   impact_data_ = pinocchio::Data(impact_model_);
   fjoint_ = pinocchio::container::aligned_vector<pinocchio::Force>(
       model_.joints.size(), pinocchio::Force::Zero());
+
   point_contacts_.clear();
   for (const auto &e : info.point_contacts) {
     point_contacts_.push_back(PointContact(model_, e));
@@ -39,13 +85,9 @@ Robot::Robot(const RobotModelInfo &info)
   for (const auto &e : info.surface_contacts) {
     surface_contacts_.push_back(SurfaceContact(model_, e));
   }
-  ckcs_.clear();
-  for (const auto &e : info.ckcs) {
-    ckcs_.push_back(CKC(model_, e));
-  }
+
   dimq_ = model_.nq;
   dimv_ = model_.nv;
-  dimu_ = model_.nv - dim_passive_;
   max_dimf_contact_ = 3 * point_contacts_.size() + 6 * surface_contacts_.size();
   max_num_contacts_ = point_contacts_.size() + surface_contacts_.size();
   dimf_ckc_ = 2 * ckcs_.size();
@@ -62,6 +104,10 @@ Robot::Robot(const RobotModelInfo &info)
   dimpact_dv_.resize(model_.nv, model_.nv);
   dimpact_dv_.setZero();
   initializeJointLimits();
+
+  assert(dimu_ + dim_passive_ == dimv_);
+  assert(dimu_ == active_idx_.size());
+  assert(dim_passive_ == passive_idx_.size());
 }
 
 Robot::Robot()
@@ -193,7 +239,7 @@ std::string Robot::frameName(const int frame_id) const {
 double Robot::totalMass() const { return pinocchio::computeTotalMass(model_); }
 
 double Robot::totalWeight() const {
-  return (-pinocchio::computeTotalMass(model_) * model_.gravity981.coeff(2));
+  return (-pinocchio::computeTotalMass(model_) * model_.gravity.linear()(2));
 }
 
 int Robot::dimq() const { return dimq_; }
@@ -209,6 +255,9 @@ int Robot::max_dimf_contact() const { return max_dimf_contact_; }
 int Robot::dimf_ckc() const { return dimf_ckc_; }
 
 int Robot::dim_passive() const { return dim_passive_; }
+
+const Eigen::MatrixXd &Robot::S() const { return S_; }
+const Eigen::MatrixXd &Robot::Sbar() const { return Sbar_; }
 
 bool Robot::hasFloatingBase() const {
   return (info_.base_joint_type == BaseJointType::FloatingBase);
@@ -322,12 +371,18 @@ Eigen::VectorXd Robot::upperJointPositionLimit() const {
 }
 
 void Robot::initializeJointLimits() {
-  const int njoints = model_.nv - dim_passive_;
+  int njoints = model_.nv;
+  if (hasFloatingBase()) {
+    njoints -= 6;
+  }
   joint_effort_limit_.resize(njoints);
   joint_velocity_limit_.resize(njoints);
   lower_joint_position_limit_.resize(njoints);
   upper_joint_position_limit_.resize(njoints);
-  joint_effort_limit_ = model_.effortLimit.tail(njoints);
+  joint_effort_limit_.resize(dimu());
+  for (int i = 0; i < dimu(); ++i) {
+    joint_effort_limit_(i) = model_.effortLimit(active_idx_[i]);
+  }
   joint_velocity_limit_ = model_.velocityLimit.tail(njoints);
   lower_joint_position_limit_ = model_.lowerPositionLimit.tail(njoints);
   upper_joint_position_limit_ = model_.upperPositionLimit.tail(njoints);
