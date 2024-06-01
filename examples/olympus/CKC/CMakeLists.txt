@@ -26,4 +26,4 @@ macro(add_example EXAMPLE)
 endmacro()
 
 # Add examples
-add_example(test)
+add_example(test_rna_derivatives)
