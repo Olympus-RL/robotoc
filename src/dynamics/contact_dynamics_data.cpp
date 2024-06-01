@@ -29,7 +29,8 @@ ContactDynamicsData::ContactDynamicsData(const Robot &robot)
       dimf_contact_(0), dimf_ckc_(robot.dimf_ckc()),
       dimvf_(robot.dimv() + robot.dimf_ckc()), dims_(0),
       dim_passive_(robot.dim_passive()),
-      has_floating_base_(robot.hasFloatingBase()) {}
+      has_floating_base_(robot.hasFloatingBase()), Sbar(robot.Sbar()),
+      S(robot.S()) {}
 
 ContactDynamicsData::ContactDynamicsData()
     : Qxu_passive(), Quu_passive_topRight(), lu_passive(), dIDda(), dIDddv(),

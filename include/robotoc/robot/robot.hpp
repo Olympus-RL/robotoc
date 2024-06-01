@@ -784,7 +784,16 @@ public:
 
   int dimf_ckc() const;
 
-  int dimg() const;
+  const std::vector<int> &active_idx() const;
+  const std::vector<int> &passive_idx() const;
+
+  ///
+  /// @brief The row selection matrix for the active joints, ie u_tilde = S^T *
+  /// u shape: dimu() x dimv()
+  const Eigen::MatrixXd &S() const;
+  /// @brief The row selection matrix for the passive joints, ie Sbar*u_tilde =
+  /// 0, Shape: dim_passive() x dimv()
+  const Eigen::MatrixXd &Sbar() const;
 
   ///
   /// @brief Returns the dimensiton of the generalized torques corresponding to
@@ -993,6 +1002,9 @@ private:
   RobotProperties properties_;
   Eigen::VectorXd joint_effort_limit_, joint_velocity_limit_,
       lower_joint_position_limit_, upper_joint_position_limit_;
+  std::vector<int> passive_idx_;
+  std::vector<int> active_idx_;
+  Eigen::MatrixXd S_, Sbar_;
 };
 
 } // namespace robotoc
