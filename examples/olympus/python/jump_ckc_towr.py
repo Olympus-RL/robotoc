@@ -11,7 +11,7 @@ model_info = robotoc.RobotModelInfo()
 model_info.urdf_path = "/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/urdf/olympus.urdf"
 model_info.base_joint_type = robotoc.BaseJointType.FloatingBase
 baumgarte_time_step_contact = 0.05
-baumgarte_time_step_ckc = 0.025
+baumgarte_time_step_ckc = 0.05
 
 model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte_time_step_contact),
                              robotoc.ContactModelInfo('BackLeft_paw', baumgarte_time_step_contact),
@@ -21,6 +21,8 @@ model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inn
                     robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step_ckc),
                     robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step_ckc),
                     robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step_ckc)]
+#model_info.ckcs = []
+model_info.contact_inv_damping = 0.0
 
 robot = robotoc.Robot(model_info)
 lower_limits = np.pi/180*np.array([ -20, -20., -30., -120, -200,  #back left
@@ -33,8 +35,8 @@ upper_limits = np.pi/180*np.array([ 20, 120, 200, 10., 30.,  #back left
                                     20, 120, 30., 10., 200, #front left
                                     20, 120, 30., 120, 200]) #front right
                                         ###inner###  ###outer###
-#lower_limits[:] = -2.0
-#upper_limits[:] = 2.0
+#lower_limits[:] = -3.0
+#upper_limits[:] = 3.0
 
 
 robot.set_lower_joint_position_limit(lower_limits)
@@ -46,24 +48,24 @@ idx =0
 for i in range(4):
     knee_idx.append(i*5+2)
     knee_idx.append(i*5+4)
-#joint_efforts_limit[knee_idx] = 0.0001
+joint_efforts_limit[knee_idx] = 0.001
 robot.set_joint_effort_limit(joint_efforts_limit)
 robot.set_gravity(-3.72)
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
 robot.set_joint_effort_limit(joint_efforts_limit)
 
-dt = 0.01
+dt = 0.02
 jump_length = np.array([0.5, 0, 0])
 take_off_duration = 0.6
 flight_duration = 0.20
 touch_down_duration = 0.5
 t0 = 0.
 
-q_standing = np.array([0., 0., 0.4, 0.0, 0., 0., 1.0, 
-                         0.0,  1.,  1.4, -1., -1.4,  #back left
-                        -0.0, -1.,  1.4,  1., -1.4, #back right
-                        -0.0,  1., -1.4, -1.,  1.4, #front left
-                         0.0,  1., -1.4,  1.,  1.4]) #front right
+q_standing = np.array([0., 0., 0.30, 0.0, 0., 0., 1.0, 
+                         0.0,  1.4,  2., -1., -1.6,  #back left
+                        -0.0, -1.4,  2.,  1., -1.6, #back right
+                        -0.0,  1.4, -2., -1.,  1.6, #front left
+                         0.0,  1.4, -2.,  1.,  1.6]) #front right
                               ###inner###  ###outer###
 
 
@@ -109,6 +111,8 @@ contact_status_landing = robot.create_contact_status()
 contact_status_landing.activate_contacts(['FrontLeft_paw', 'BackLeft_paw', 'FrontRight_paw', 'BackRight_paw'])
 contact_position_landing = {k:v+jump_length for k,v in contact_positions_standing.items()}
 contact_status_landing.set_contact_placements(contact_position_landing)
+contact_status_landing.set_friction_coefficients(friction_coefficients)
+
 contact_sequence.push_back(contact_status_landing, t0+take_off_duration+flight_duration, sto=False)
 
 # you can check the contact sequence via 
@@ -184,10 +188,10 @@ q_ref = configuration_towr[-1]
 refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
 
 q_weight = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 
-                        0.01, 0.01,0.01, 0.01, 0.01, 
-                        0.01, 0.01,0.01, 0.01, 0.01,
-                        0.01, 0.01,0.01, 0.01, 0.01,
-                        0.01, 0.01,0.01, 0.01, 0.01])
+                        0.1, 0.1,0.1, 0.1, 0.1, 
+                        0.1, 0.1,0.1, 0.1, 0.1,
+                        0.1, 0.1,0.1, 0.1, 0.1,
+                        0.1, 0.1,0.1, 0.1, 0.1])
 v_weight = np.full(robot.dimv(), 1e-3)
 a_weight = np.full(robot.dimv(), 1.0e-03)
 q_weight_impact = np.array([0., 0., 0., 100., 100., 100., 
@@ -217,7 +221,7 @@ ocp = robotoc.OCP(robot=robot, cost=cost, constraints=constraints,
 solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 0.1
 solver_options.max_dt_mesh = T/N 
-solver_options.max_iter = 200
+solver_options.max_iter = 800
 solver_options.nthreads = 4
 solver_options.initial_sto_reg_iter = 0
 solver_options.enable_line_search=False

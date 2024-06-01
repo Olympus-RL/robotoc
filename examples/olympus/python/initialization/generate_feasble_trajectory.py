@@ -16,13 +16,19 @@ def make_sol_feaseble(robot,configuration,td,contact_sequence) -> List[robotoc.S
         grid = td[i]
         dt = grid.dt
 
-        if (grid.type == robotoc.GridType.Intermediate
+        if grid.type == robotoc.GridType.Terminal:
+            q = configuration[i]
+            v = np.zeros(robot.dimv())
+            sol[i].q = q
+            sol[i].v = v
+
+        elif (grid.type == robotoc.GridType.Intermediate
             or grid.type == robotoc.GridType.Lift):
 
             q = configuration[i]   
-            v = robot.subtract_configuration(q,sol[i+1].q)/dt
+            v = robot.subtract_configuration(sol[i+1].q,q)/dt
             a = (sol[i+1].v - v)/dt
-            u,F_ckc,F_contact = ID_OLD(robot,q,v,a,contact_sequence.contact_status(grid.phase),robot.joint_effort_limit())
+            u,F_ckc,F_contact = ID(robot,q,v,a,contact_sequence.contact_status(grid.phase),robot.joint_effort_limit())
             sol[i].q = q
             sol[i].v = v
             sol[i].a = a
@@ -41,12 +47,7 @@ def make_sol_feaseble(robot,configuration,td,contact_sequence) -> List[robotoc.S
             sol[i].dv = dv 
             sol[i].set_contact_status(contact_sequence.impact_status(grid.impact_index))
             sol[i].set_f_stack()
-        elif grid.type == robotoc.GridType.Terminal:
-            assert(i == len(td)-1)
-            q = configuration[i]
-            v = np.zeros(robot.dimv())
-            sol[i].q = q
-            sol[i].v = v
+      
         
         if grid.switching_constraint:
             grid_next_next = td[i+2]
@@ -69,6 +70,9 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
     dim_f = dim_f_contact + dim_f_ckc
     dim_u = robot.dimu()
 
+    if dim_f == 0:
+        return robot.rnea(q,v,a)[6:],[],[]
+
     b_friction_cone = np.zeros(5*num_contacts)
     A_friction_cone = np.zeros((5*num_contacts,3*num_contacts))
     c_slack_friction_cone = np.ones(5*num_contacts)
@@ -88,8 +92,8 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
         bounds_friction_cone.append((None,None))
         bounds_friction_cone.append((None,None))
         bounds_friction_cone.append((None,None))
-        c_slack_friction_cone[cone_dim:cone_dim+4] = 1e6
-        c_slack_friction_cone[cone_dim+4] = 1e6
+        c_slack_friction_cone[cone_dim:cone_dim+4] = 1e4
+        c_slack_friction_cone[cone_dim+4] = 1e4
         f_dim += 3
         cone_dim += 5
 
@@ -152,7 +156,7 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
             R = robot.frame_rotation(frame_name)
             f_c = f_contact_world[f_dim:f_dim+3]
             if f_c[2] < 0:
-                print("Warning: negative normal force")
+                f_c[2] = 0
             f_i = np.zeros(6)
             f_i[:3] = R.T @ f_c
             F_contact.append(f_i)
@@ -262,6 +266,7 @@ def ID_OLD(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArr
             f_c = f_contact_world[f_dim:f_dim+3]
             if f_c[2] < 0:
                 print("Warning: negative normal force")
+                f_c[2] = 0
             f_i = np.zeros(6)
             f_i[:3] = R.T @ f_c
             F_contact.append(f_i)

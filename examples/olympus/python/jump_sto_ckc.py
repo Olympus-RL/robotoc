@@ -28,7 +28,7 @@ idx =0
 for i in range(4):
     knee_idx.append(i*5+2)
     knee_idx.append(i*5+4)
-#joint_efforts_limit[knee_idx] = 0.0001
+joint_efforts_limit[knee_idx] = 0.0001
 robot.set_joint_effort_limit(joint_efforts_limit)
 robot.set_gravity(-3.72)
 

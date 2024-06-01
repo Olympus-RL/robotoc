@@ -1,7 +1,6 @@
 import robotoc
 from tojr import OptJumpTowr
-from calculate_joint_states import calcualate_joint_states
-from generate_feasble_trajectory import generate_feaseble_trajectory
+from initialization import make_sol_feaseble,calcualate_joint_states
 from robotoc.cost.periodic_com_ref import TrajectoryRef
 import numpy as np
 import math
@@ -89,13 +88,12 @@ contact_sequence.init(contact_status_standing)
 contact_status_flying = robot.create_contact_status()
 contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=False)
 
-contat_position_landing = copy.deepcopy(contact_positions_standing)
-contact_positions_standing['FrontLeft_paw'] += jump_length
-contact_positions_standing['BackLeft_paw'] += jump_length
-contact_positions_standing['FrontRight_paw'] += jump_length
-contact_positions_standing['BackRight_paw'] += jump_length
-contact_status_standing.set_contact_placements(contact_positions_standing)
-contact_sequence.push_back(contact_status_standing, t0+take_off_duration+flight_duration, sto=False)
+contact_status_landing = robot.create_contact_status()
+contact_status_landing.activate_contacts(['FrontLeft_paw', 'BackLeft_paw', 'FrontRight_paw', 'BackRight_paw'])
+contact_position_landing = {k:v+jump_length for k,v in contact_positions_standing.items()}
+contact_status_landing.set_contact_placements(contact_position_landing)
+contact_status_landing.set_friction_coefficients(friction_coefficients)
+contact_sequence.push_back(contact_status_landing, t0+take_off_duration+flight_duration, sto=False)
 
 # you can check the contact sequence via 
 # print(contact_sequence)
@@ -119,36 +117,33 @@ dt_min = T/N
 
 
 
-con_pos_stand = {fn:robot.frame_position(fn) for fn in ['BackLeft_paw', 'BackRight_paw','FrontLeft_paw','FrontRight_paw']}
-con_pos_land = {fn:robot.frame_position(fn)+jump_length for fn in ['BackLeft_paw', 'BackRight_paw','FrontLeft_paw','FrontRight_paw']}
-dts_takeoff = []
-dts_flight = []
-dts_landing = []
+
 q_traj_takeoff = []
 q_traj_flight = []
 q_traj_landing = []
-
-
+q_traj = []
+theta_guess = theta_guess_0
 for i in range(len(td)):
+
     grid = td[i]
-    if grid.phase == 0:
-        dts_takeoff.append(grid.dt)
-        base_pose_towr, base_vel_towr = optjump_towr.get_base_state(grid.t)
-        theta = calcualate_joint_states(robot, con_pos_stand, base_pose_towr,theta_guess)
-        theta_guess = theta
-        q_traj_takeoff.append(np.concatenate((base_pose_towr,theta)))
-    elif grid.phase == 1:
-        dts_flight.append(grid.dt)
-        base_pose_towr, base_vel_towr = optjump_towr.get_base_state(grid.t)
-        q_traj_flight.append(np.concatenate((base_pose_towr,theta_guess_0)))
+    t = grid.t
+    phase = grid.phase
+    basepose,_ = optjump_towr.get_base_state(t)
+    contact_status = contact_sequence.contact_status(phase)
+    if phase == 1:
         theta_guess = theta_guess_0
-    else:
-        if grid.type != robotoc.GridType.Impact:
-            dts_landing.append(grid.dt)
-            base_pose_towr, base_vel_towr = optjump_towr.get_base_state(grid.t)
-            theta = calcualate_joint_states(robot, con_pos_land, base_pose_towr,theta_guess)
-            theta_guess = theta
-            q_traj_landing.append(np.concatenate((base_pose_towr,theta)))
+    theta = calcualate_joint_states(robot,contact_status,basepose,theta_guess)
+    
+        
+    theta_guess = theta
+    q_traj.append(np.concatenate((basepose,theta)))
+    if phase == 0:
+        q_traj_takeoff.append(q_traj[-1].copy())
+    elif phase == 1:
+        q_traj_flight.append(q_traj[-1].copy())
+    elif phase == 2 and grid.type != robotoc.GridType.Impact:
+        q_traj_landing.append(q_traj[-1].copy())
+  
 
 
 
@@ -225,9 +220,9 @@ ocp = robotoc.OCP(robot=robot, cost=cost, constraints=constraints,
 solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 0.1
 solver_options.max_dt_mesh = T/N 
-solver_options.max_iter = 1500
+solver_options.max_iter = 100
 solver_options.nthreads = 4
-solver_options.initial_sto_reg_iter = 0
+solver_options.initial_sto_reg_iter = 100
 solver_options.enable_line_search=False
 solver_options.enable_benchmark=True
 solver_options.max_dts_riccati = 0.05
@@ -237,57 +232,9 @@ ocp_solver.discretize(t)
 ocp_solver.set_solution("q",q_standing)
 td = ocp_solver.get_time_discretization()
 
+sol = make_sol_feaseble(robot,q_traj,td,contact_sequence)
+ocp_solver.set_solution(sol)
 
-dummy_sol = ocp_solver.get_solution()
-
-
-
-dts_takeoff.pop()
-dts_flight.pop()        
-dts_landing.pop()
-solution_guess_takeoff = generate_feaseble_trajectory(robot,q_traj_takeoff,dts_takeoff,contact_positions_standing, mu)
-solution_guess_landing = generate_feaseble_trajectory(robot,q_traj_landing,dts_landing,con_pos_land, mu)
-s_impact = robotoc.SplitSolution()
-s_impact.q = q_traj_landing[0]
-s_impact.v = solution_guess_landing[0].v
-solution_guess_landing.insert(0,s_impact)
-vel_flight = []
-acc_flight = []
-solution_guess_flight = []
-for i, dt in enumerate(dts_flight):
-    v = robot.subtract_configuration(q_traj_flight[i+1], q_traj_flight[i]) / dt
-    vel_flight.append(v)
-vel_flight.append(vel_flight[-1].copy())
-for i, dt in enumerate(dts_flight):
-    a = (vel_flight[i+1] - vel_flight[i]) / dt
-    acc_flight.append(a)
-acc_flight.append(acc_flight[-1].copy())
-
-for i,(q,v,a) in enumerate(zip(q_traj_flight,vel_flight,acc_flight)):
-    s = robotoc.SplitSolution(robot)
-    s.q = q
-    s.v = v
-    s.a = a
-    solution_guess_flight.append(s)
-
-
-solution_towr = solution_guess_takeoff + solution_guess_flight + solution_guess_landing
-
-
-print("len(solution_towr): ", len(solution_towr))
-print("len(dummy_sol): ", len(dummy_sol))
-
-test = dummy_sol
-if True:
-    for s_test,s_towr in zip(test,solution_towr):
-        s_test.q = s_towr.q
-        s_test.v = s_towr.v
-        s_test.a = s_towr.a
-        s_test.u = s_towr.u
-        s_test.f = s_towr.f
-        s_test.set_gf_stack()
-
-ocp_solver.set_solution(test)
 ocp_solver.init_constraints()
 print("Initial KKT error: ", ocp_solver.KKT_error(t0, q, v))
 ocp_solver.solve(t0, q, v)
