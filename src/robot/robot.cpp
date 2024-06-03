@@ -14,7 +14,7 @@ Robot::Robot(const RobotModelInfo &info)
   case BaseJointType::FloatingBase:
     pinocchio::urdf::buildModel(info.urdf_path,
                                 pinocchio::JointModelFreeFlyer(), model_);
-    dim_passive_ = 6; // this should be changed when integrating floating base
+    dim_passive_ = 6;
     for (int i = 0; i < dim_passive_; ++i) {
       passive_idx_.push_back(i);
     }
@@ -63,12 +63,6 @@ Robot::Robot(const RobotModelInfo &info)
 
   assert(sbar_idx == dim_passive_);
   assert(s_idx == dimu_);
-
-  std::cout << "S^T" << std::endl;
-  std::cout << S_.transpose() << std::endl;
-  std::cout << "=========================" << std::endl;
-  std::cout << "Sbar" << std::endl;
-  std::cout << Sbar_ << std::endl;
 
   impact_model_ = model_;
   impact_model_.gravity.linear().setZero();

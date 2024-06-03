@@ -22,7 +22,7 @@ ContactDynamicsData::ContactDynamicsData(const Robot &robot)
           Eigen::MatrixXd::Zero(robot.dimv() + robot.max_dimf(), robot.dimv())),
       IDC_full_(Eigen::VectorXd::Zero(robot.dimv() + robot.max_dimf())),
       MJtJinv_IDC_full_(Eigen::VectorXd::Zero(robot.dimv() + robot.max_dimf())),
-      Phia_full_(Eigen::MatrixXd::Zero(robot.max_dimf(), robot.dimv())),
+      Phia_full_(Eigen::MatrixXd::Zero(robot.max_dimf_contact(), robot.dimv())),
       laf_full_(Eigen::VectorXd::Zero(robot.dimv() + robot.max_dimf())),
       haf_full_(Eigen::VectorXd::Zero(robot.dimv() + robot.max_dimf())),
       dimv_(robot.dimv()), dimu_(robot.dimu()), dimf_(robot.dimf_ckc()),

@@ -174,6 +174,7 @@ ContactDynamicsData::Qafu_full() const {
 
 inline Eigen::Block<Eigen::MatrixXd> ContactDynamicsData::Qafu_passive() {
   return Qafu_full_full_.topLeftCorner(dimvf_, dim_passive_);
+  //return Qafu_full_full_.topRows(dimvf_)*(Sbar.transpose());
 }
 
 
@@ -191,6 +192,7 @@ inline Eigen::Block<Eigen::MatrixXd> ContactDynamicsData::Qafu() {
 inline const Eigen::Block<const Eigen::MatrixXd> 
 ContactDynamicsData::Qafu() const {
   return Qafu_full_full_.block(0, dim_passive_, dimvf_, dimu_);
+  
 }
 
 

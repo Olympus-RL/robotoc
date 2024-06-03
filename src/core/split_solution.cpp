@@ -211,7 +211,7 @@ void SplitSolution::setRandom(const Robot &robot,
                               const ContactStatus &contact_status) {
   setContactStatus(contact_status);
   setRandom(robot);
-  if (contact_status.hasActiveContacts()) {
+  if (contact_status.hasActiveContacts() || robot.numCKCs() > 0) {
     f_stack().setRandom();
     mu_stack().setRandom();
     set_f_vector();

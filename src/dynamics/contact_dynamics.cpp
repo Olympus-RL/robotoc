@@ -15,7 +15,8 @@ void evalContactDynamics(Robot &robot, const ContactStatus &contact_status,
   robot.setContactForces(contact_status, s.f_contact);
   robot.setCKCForces(s.f_ckc);
   robot.RNEA(s.q, s.v, s.a, data.ID_full());
-  data.ID().noalias() -= s.u;
+  // data.ID().noalias() -= s.u;
+  data.ID_full().noalias() -= data.S.transpose() * s.u;
   robot.computeBaumgarteResidual(contact_status, data.C());
 }
 
@@ -30,9 +31,10 @@ void linearizeContactDynamics(Robot &robot, const ContactStatus &contact_status,
   kkt_residual.lq().noalias() += data.dIDdq().transpose() * s.beta;
   kkt_residual.lv().noalias() += data.dIDdv().transpose() * s.beta;
   kkt_residual.la.noalias() += data.dIDda.transpose() * s.beta;
-  if (contact_status.hasActiveContacts()) {
+  if (data.dimf() > 0) {
     kkt_residual.lf().noalias() -= data.dCda() * s.beta;
   }
+
   if (data.hasFloatingBase()) {
     // augment floating base constraint
     data.lu_passive = s.nu_passive;
@@ -57,8 +59,8 @@ void condenseContactDynamics(Robot &robot, const ContactStatus &contact_status,
                              SplitKKTResidual &kkt_residual) {
   assert(dt > 0);
   const int dimv = robot.dimv();
-  const int dimu = robot.dimu();
-  const int dim_passive = robot.dim_passive();
+  // const int dimu = robot.dimu();
+  // const int dim_passive = robot.dim_passive();
   const int dimf = data.dimf();
   robot.computeMJtJinv(data.dIDda, data.dCda(), data.MJtJinv());
   data.MJtJinv_dIDCdqv().noalias() = data.MJtJinv() * data.dIDCdqv();
@@ -145,14 +147,20 @@ void condenseContactDynamics(Robot &robot, const ContactStatus &contact_status,
     data.lu_passive.noalias() +=
         data.Sbar * data.MJtJinv().topRows(dimv) * data.laf();
   }
+  // kkt_residual.lu.noalias() +=
+  //    data.MJtJinv().middleRows(dim_passive, dimu) * data.laf();
+
   kkt_residual.lu.noalias() +=
-      data.MJtJinv().middleRows(dim_passive, dimu) * data.laf();
+      data.S * (data.MJtJinv().topRows(dimv)) * data.laf();
 
   kkt_matrix.Fvq() = -dt * data.MJtJinv_dIDCdqv().topLeftCorner(dimv, dimv);
   kkt_matrix.Fvv().noalias() =
       -dt * data.MJtJinv_dIDCdqv().topRightCorner(dimv, dimv) +
       Eigen::MatrixXd::Identity(dimv, dimv);
-  kkt_matrix.Fvu = dt * data.MJtJinv().block(0, dim_passive, dimv, dimu);
+  // kkt_matrix.Fvu = dt * data.MJtJinv().block(0, dim_passive, dimv, dimu);
+  kkt_matrix.Fvu =
+      dt * (data.MJtJinv().topLeftCorner(dimv, dimv)) * data.S.transpose();
+
   kkt_residual.Fv().noalias() -= dt * data.MJtJinv_IDC().head(dimv);
 
   // Switching constraint
@@ -162,9 +170,12 @@ void condenseContactDynamics(Robot &robot, const ContactStatus &contact_status,
     data.Phia() = kkt_matrix.Phia();
     kkt_matrix.Phix().noalias() -=
         data.Phia() * data.MJtJinv_dIDCdqv().topRows(data.dimv());
+    // kkt_matrix.Phiu().noalias() =
+    //    data.Phia() *
+    //    data.MJtJinv().block(0, data.dim_passive(), data.dimv(), data.dimu());
     kkt_matrix.Phiu().noalias() =
         data.Phia() *
-        data.MJtJinv().block(0, data.dim_passive(), data.dimv(), data.dimu());
+        (data.MJtJinv().topLeftCorner(dimv, dimv) * data.S.transpose());
     kkt_matrix.Phit().noalias() -=
         data.Phia() * data.MJtJinv_IDC().head(data.dimv());
     kkt_residual.P().noalias() -=
@@ -182,7 +193,8 @@ void condenseContactDynamics(Robot &robot, const ContactStatus &contact_status,
       (1.0 / dt) * kkt_matrix.Qqf() * data.MJtJinv_IDC().tail(dimf);
   // kkt_matrix.hu.noalias() +=
   //    data.MJtJinv().middleRows(dim_passive, dimu) * data.haf();
-  kkt_matrix.hu.noalias() += data.S * data.MJtJinv().topRows(dimv) * data.haf();
+  kkt_matrix.hu.noalias() +=
+      data.S * (data.MJtJinv().topRows(dimv)) * data.haf();
 }
 
 void expandContactDynamicsPrimal(const ContactDynamicsData &data,
@@ -216,7 +228,8 @@ void expandContactDynamicsDual(const double dt, const double dts,
         d_next.dgmm();
   }
   data.laf().noalias() += data.Qafqv() * d.dx;
-  data.laf().noalias() += data.Qafu() * d.du;
+  // data.laf().noalias() += data.Qafu() * d.du;
+  data.laf().noalias() += data.Qafu_full() * (data.S.transpose()) * d.du;
   data.la().noalias() += dt * d_next.dgmm();
   if (data.dims() > 0) {
     assert(data.dims() == d.dims());
