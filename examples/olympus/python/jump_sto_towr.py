@@ -149,10 +149,8 @@ for i in range(len(td)):
 
 # Create the cost function
 cost = robotoc.CostFunction()
-print(1)
 refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
 q_land = q_traj_landing[-1]
-print(2)
 q_weight = 10*np.array([1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 
                         0.01, 0.01, 0.01, 
                         0.01, 0.01, 0.01,

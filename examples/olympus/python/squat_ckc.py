@@ -9,16 +9,15 @@ import copy
 model_info = robotoc.RobotModelInfo()
 model_info.urdf_path = "/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/urdf/olympus.urdf"
 model_info.base_joint_type = robotoc.BaseJointType.FloatingBase
-baumgarte_time_step_contact = 0.05
-baumgarte_time_step_ckc = 0.05
-model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte_time_step_contact),
-                             robotoc.ContactModelInfo('BackLeft_paw', baumgarte_time_step_contact),
-                             robotoc.ContactModelInfo('FrontRight_paw', baumgarte_time_step_contact),
-                             robotoc.ContactModelInfo('BackRight_paw', baumgarte_time_step_contact)]
-model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inner",baumgarte_time_step_ckc),
-                    robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step_ckc),
-                    robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step_ckc),
-                    robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step_ckc)]
+baumgarte_time_step = 0.05
+model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte_time_step),
+                             robotoc.ContactModelInfo('BackLeft_paw', baumgarte_time_step),
+                             robotoc.ContactModelInfo('FrontRight_paw', baumgarte_time_step),
+                             robotoc.ContactModelInfo('BackRight_paw', baumgarte_time_step)]
+model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inner",baumgarte_time_step),
+                    robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step),
+                    robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step),
+                    robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step)]
 robot = robotoc.Robot(model_info)
 robot.set_lower_joint_position_limit(np.full(robot.dimv()-6, -3.0))
 robot.set_upper_joint_position_limit(np.full(robot.dimv()-6, 3.0))
@@ -32,6 +31,7 @@ print("dimu: ", robot.dimu())
 
 dt = 0.05
 stand_time = 1.0
+squat_height = 0.25
 t0 = 0.
 
 q_standing = np.array([0., 0., 0.5, 0.0, 0., 0., 1.0, 

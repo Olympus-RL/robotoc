@@ -39,6 +39,8 @@ def make_sol_feaseble(robot,configuration,td,contact_sequence) -> List[robotoc.S
             sol[i].set_contact_status(contact_sequence.contact_status(grid.phase))
             sol[i].set_f_stack()
 
+
+
         elif grid.type == robotoc.GridType.Impact:
             q = sol[i+1].q
             dv = np.zeros(robot.dimv())
@@ -55,6 +57,9 @@ def make_sol_feaseble(robot,configuration,td,contact_sequence) -> List[robotoc.S
             sol[i].set_switching_constraint_dimension(contact_sequence.impact_status(grid_next_next.impact_index).dimf())
         else:
             sol[i].set_switching_constraint_dimension(0)
+
+        assert(len(sol[i].f_contact) == robot.max_num_contacts())
+        assert(len(sol[i].f_ckc) == robot.numCKCs())
     return sol            
                 
 def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],List[NDArray]]:
@@ -151,7 +156,7 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
     F_ckc = []
 
     f_dim = 0
-    for i in range(num_contacts):
+    for i in range(robot.max_num_contacts()):
         if contact_status.is_contact_active(i):
             frame_name = contact_status.contact_frame_name(i)
             R = robot.frame_rotation(frame_name)

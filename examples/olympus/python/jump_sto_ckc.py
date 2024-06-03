@@ -22,13 +22,8 @@ robot = robotoc.Robot(model_info)
 robot.set_lower_joint_position_limit(np.full(robot.dimv()-6, -3.0))
 robot.set_upper_joint_position_limit(np.full(robot.dimv()-6, 3.0))
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
-joint_efforts_limit = np.full(robot.dimv()-6, 24.0)
+joint_efforts_limit = np.full(robot.dimu(), 24.0)
 knee_idx = []
-idx =0
-for i in range(4):
-    knee_idx.append(i*5+2)
-    knee_idx.append(i*5+4)
-joint_efforts_limit[knee_idx] = 0.0001
 robot.set_joint_effort_limit(joint_efforts_limit)
 robot.set_gravity(-3.72)
 
@@ -176,7 +171,7 @@ solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 1.0
 solver_options.max_dt_mesh = T/N 
 solver_options.max_iter = 800
-solver_options.nthreads = 4
+solver_options.nthreads = 1
 ocp_solver = robotoc.OCPSolver(ocp=ocp, solver_options=solver_options)
 
 # Initial time and intial state 
@@ -189,8 +184,9 @@ ocp_solver.set_solution("q", q)
 ocp_solver.set_solution("v", v)
 f_init = np.array([0.0, 0.0, 0.25*robot.total_weight()])
 ocp_solver.set_solution("f", f_init)
-
+print(1)
 ocp_solver.init_constraints()
+print(2)
 print("Initial KKT error: ", ocp_solver.KKT_error(t, q, v))
 ocp_solver.solve(t, q, v)
 print("KKT error after convergence: ", ocp_solver.KKT_error(t, q, v))

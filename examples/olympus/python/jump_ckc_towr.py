@@ -18,9 +18,10 @@ model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte
                              robotoc.ContactModelInfo('FrontRight_paw', baumgarte_time_step_contact),
                              robotoc.ContactModelInfo('BackRight_paw', baumgarte_time_step_contact)]
 model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inner",baumgarte_time_step_ckc),
-                    robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step_ckc),
-                    robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step_ckc),
-                    robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step_ckc)]
+                robotoc.CKCInfo("FrontRight_ankle_outer","FrontRight_ankle_inner",baumgarte_time_step_ckc),
+                robotoc.CKCInfo("BackLeft_ankle_outer","BackLeft_ankle_inner",baumgarte_time_step_ckc),
+                robotoc.CKCInfo("BackRight_ankle_outer","BackRight_ankle_inner",baumgarte_time_step_ckc)]
+
 #model_info.ckcs = []
 model_info.contact_inv_damping = 0.0
 
@@ -48,12 +49,13 @@ robot.set_gravity(-3.72)
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
 robot.set_joint_effort_limit(joint_efforts_limit)
 
-dt = 0.02
+dt = 0.020
 jump_length = np.array([0.5, 0, 0])
 take_off_duration = 0.6
 flight_duration = 0.20
-touch_down_duration = 0.5
+touch_down_duration = 0.4
 t0 = 0.
+use_sto = False
 
 q_standing = np.array([0., 0., 0.30, 0.0, 0., 0., 1.0, 
                          0.0,  1.4,  2., -1., -1.6,  #back left
@@ -99,7 +101,7 @@ contact_status_standing.set_friction_coefficients(friction_coefficients)
 contact_sequence.init(contact_status_standing)
 
 contact_status_flying = robot.create_contact_status()
-contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=False)
+contact_sequence.push_back(contact_status_flying, t0+take_off_duration, sto=use_sto)
 
 contact_status_landing = robot.create_contact_status()
 contact_status_landing.activate_contacts(['FrontLeft_paw', 'BackLeft_paw', 'FrontRight_paw', 'BackRight_paw'])
@@ -107,7 +109,7 @@ contact_position_landing = {k:v+jump_length for k,v in contact_positions_standin
 contact_status_landing.set_contact_placements(contact_position_landing)
 contact_status_landing.set_friction_coefficients(friction_coefficients)
 
-contact_sequence.push_back(contact_status_landing, t0+take_off_duration+flight_duration, sto=False)
+contact_sequence.push_back(contact_status_landing, t0+take_off_duration+flight_duration, sto=use_sto)
 
 # you can check the contact sequence via 
 # print(contact_sequence)
@@ -152,7 +154,6 @@ for i in range(len(td)):
     elif phase == 2 and grid.type != robotoc.GridType.Impact:
         q_traj_landing.append(configuration_towr[-1].copy())
     
-print("Q[-1]",configuration_towr[-2])
 
 # Create the constraints
 constraints           = robotoc.Constraints(barrier_param=1.0e-03, fraction_to_boundary_rule=0.995)
@@ -177,32 +178,39 @@ sto_cost = robotoc.STOCostFunction()
 sto_constraints = robotoc.STOConstraints(minimum_dwell_times=[0.10, 0.15,touch_down_duration*0.7],
                                             barrier_param=1.0e-03, 
                                             fraction_to_boundary_rule=0.995)
-cost = robotoc.CostFunction()
-q_ref = configuration_towr[-1]
-refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
 
-q_weight = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 
-                        0.1, 0.1,0.1, 0.1, 0.1, 
-                        0.1, 0.1,0.1, 0.1, 0.1,
-                        0.1, 0.1,0.1, 0.1, 0.1,
-                        0.1, 0.1,0.1, 0.1, 0.1])
-v_weight = np.full(robot.dimv(), 1e-3)
-a_weight = np.full(robot.dimv(), 1.0e-03)
-q_weight_impact = np.array([0., 0., 0., 100., 100., 100., 
-                        0.1,0.1,0.1, 0.1, 0.1, 
-                        0.1,0.1,0.1, 0.1, 0.1,
-                        0.1,0.1,0.1, 0.1, 0.1,
-                        0.1,0.1,0.1, 0.1, 0.1])
+# Create the cost function
+cost = robotoc.CostFunction()
+refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
+q_land = q_traj_landing[-1]
+q_weight = 10*np.array([1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 
+                        0.01, 0.01, 0.01, 0.01, 0.01, 
+                        0.01, 0.01, 0.01, 0.01, 0.01,
+                        0.01, 0.01, 0.01, 0.01, 0.01,
+                        0.01, 0.01, 0.01, 0.01, 0.01])
+q_weight_terminal = np.zeros(robot.dimv())
+q_weight_terminal[:2] = 1000*np.array([1.0, 1.0])
+q_weight_terminal[2] = 10
+q_weight_terminal[3:6] = 0.1*np.array([1.0, 1.0, 1.0])
+q_weight_terminal[6:] = 0.1*np.ones(robot.dimv()-6)
+v_weight = np.full(robot.dimv(), 1.0e-6)
+a_weight = np.full(robot.dimv(), 1.0e-06)
+q_weight_impact = np.array([0., 0., 0., 0., 0., 0., 
+                        0.1, 0.1, 0.1, 0.1, 0.1, 
+                        0.1, 0.1, 0.1, 0.1, 0.1,
+                        0.1, 0.1, 0.1, 0.1, 0.1,
+                        0.1, 0.1, 0.1, 0.1, 0.1])
 v_weight_impact = np.full(robot.dimv(), 1.0)
-dv_weight_impact = np.full(robot.dimv(), 1.0e-06)
+dv_weight_impact = np.full(robot.dimv(), 1.0e3)
 config_cost = robotoc.ConfigurationSpaceCost(robot)
 config_cost.set_ref(refrence_traj)
+#config_cost.set_q_ref(q_land)
 config_cost.set_q_weight(q_weight)
-config_cost.set_q_weight_terminal(1000*q_weight)
+config_cost.set_q_weight_terminal(q_weight)
 config_cost.set_q_weight_impact(q_weight_impact)
-config_cost.set_v_weight(v_weight)
+#config_cost.set_v_weight(v_weight)
 config_cost.set_v_weight_terminal(v_weight)
-config_cost.set_v_weight_impact(v_weight_impact)
+#config_cost.set_v_weight_impact(v_weight_impact)
 config_cost.set_dv_weight_impact(dv_weight_impact)
 config_cost.set_a_weight(a_weight)
 cost.add("config_cost", config_cost)
@@ -215,7 +223,7 @@ ocp = robotoc.OCP(robot=robot, cost=cost, constraints=constraints,
 solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 0.1
 solver_options.max_dt_mesh = T/N 
-solver_options.max_iter = 1
+solver_options.max_iter = 100
 solver_options.nthreads = 4
 solver_options.initial_sto_reg_iter = 0
 solver_options.enable_line_search=False
@@ -265,6 +273,8 @@ viewer.set_contact_info(mu=mu)
 Q = ocp_solver.get_solution('q')
 F = ocp_solver.get_solution('f', 'WORLD')
 U = ocp_solver.get_solution('u')
+
+
 
 
 
