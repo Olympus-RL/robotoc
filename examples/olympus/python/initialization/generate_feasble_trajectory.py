@@ -28,6 +28,7 @@ def make_sol_feaseble(robot,configuration,td,contact_sequence) -> List[robotoc.S
 
             q = configuration[i]   
             v = robot.subtract_configuration(sol[i+1].q,q)/dt
+            v[6:] = np.clip(v[6:],-robot.joint_velocity_limit(),robot.joint_velocity_limit())
             a = (sol[i+1].v - v)/dt
             u,F_ckc,F_contact = ID(robot,q,v,a,contact_sequence.contact_status(grid.phase),robot.joint_effort_limit())
             sol[i].q = q
@@ -77,7 +78,8 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
     dim_u = robot.dimu()
 
     if dim_f == 0:
-        return robot.rnea(q,v,a)[6:],[np.zeros(2) for _ in range(robot.numCKCs())],[np.zeros(6) for _ in range(robot.max_num_contacts())]
+        u = np.clip(robot.S() @ robot.rnea(q,v,a),-torque_limits+2,torque_limits-2)
+        return u,[np.zeros(2) for _ in range(robot.numCKCs())],[np.zeros(6) for _ in range(robot.max_num_contacts())]
 
     b_friction_cone = np.zeros(5*num_contacts)
     A_friction_cone = np.zeros((5*num_contacts,3*num_contacts))
@@ -106,7 +108,7 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
     bounds_u = []
     A_u = np.zeros((2*dim_u,dim_u))
     b_u = np.zeros(2*dim_u)
-    c_slack_u = np.ones(2*dim_u)*0
+    c_slack_u = np.ones(2*dim_u)*1e4
     for i in range(dim_u):
         bounds_u.append((None,None))
         A_u[2*i:2*i+2,i]=np.array([1,-1]) #u_i <= torque_limits[i] and -u_i <= torque_limits[i] 
@@ -160,9 +162,14 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
         if contact_status.is_contact_active(i):
             frame_name = contact_status.contact_frame_name(i)
             R = robot.frame_rotation(frame_name)
-            f_c = f_contact_world[f_dim:f_dim+3]
+            f_c = f_contact_world[f_dim:f_dim+3].copy()
             if f_c[2] < 0:
-                f_c[2] = 0
+                f_c[:] = 0
+            if np.abs(f_c[0]) > mus[i]/np.sqrt(2)*f_c[2]:
+                f_c[0] = np.sign(f_c[0])*mus[i]/np.sqrt(2)*f_c[2]
+            if np.abs(f_c[1]) > mus[i]/np.sqrt(2)*f_c[2]:
+                f_c[1] = np.sign(f_c[1])*mus[i]/np.sqrt(2)*f_c[2]
+            
             f_i = np.zeros(6)
             f_i[:3] = R.T @ f_c
             F_contact.append(f_i)
@@ -186,7 +193,7 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
         print("residuals u:", res_u)
         print("="*20)
     
-    return u,F_ckc,F_contact
+    return np.clip(u,-torque_limits+2,torque_limits-2),F_ckc,F_contact
 
 
 
