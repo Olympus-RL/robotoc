@@ -4,9 +4,7 @@
 
 namespace robotoc {
 
-namespace {
-constexpr int dim_floating_base = 6;
-}
+
 
 void evalContactDynamics(Robot &robot, const ContactStatus &contact_status,
                          const SplitSolution &s, ContactDynamicsData &data) {
