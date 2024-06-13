@@ -50,9 +50,11 @@ SplitSolution::f_stack() const {
 
 inline void SplitSolution::set_f_stack() {
   int segment_begin = 0;
-  for (int i = 0; i < num_ckcs_; i++) {
-    f_stack_.template segment<2>(segment_begin) = f_ckc[i];
-    segment_begin += 2;
+  if (dimf_ckc_ > 0) {
+    for (int i = 0; i < num_ckcs_; i++) {
+      f_stack_.template segment<2>(segment_begin) = f_ckc[i];
+      segment_begin += 2;
+    }
   }
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (is_contact_active_[i]) {
@@ -71,13 +73,16 @@ inline void SplitSolution::set_f_stack() {
       }
     }
   }
+  assert(segment_begin == dimf_);
 }
 
 inline void SplitSolution::set_f_vector() {
   int segment_begin = 0;
-  for (int i = 0; i < num_ckcs_; i++) {
-    f_ckc[i] = f_stack_.template segment<2>(segment_begin);
-    segment_begin += 2;
+  if (dimf_ckc_ > 0) {
+    for (int i = 0; i < num_ckcs_; i++) {
+      f_ckc[i] = f_stack_.template segment<2>(segment_begin);
+      segment_begin += 2;
+    }
   }
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (is_contact_active_[i]) {
@@ -96,6 +101,7 @@ inline void SplitSolution::set_f_vector() {
       }
     }
   }
+  assert(segment_begin == dimf_);
 }
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitSolution::mu_stack() {
@@ -109,9 +115,11 @@ SplitSolution::mu_stack() const {
 
 inline void SplitSolution::set_mu_stack() {
   int segment_begin = 0;
-  for (int i = 0; i < num_ckcs_; i++) {
-    mu_stack_.template segment<2>(segment_begin) = mu_ckc[i];
-    segment_begin += 2;
+  if (dimf_ckc_ > 0) {
+    for (int i = 0; i < num_ckcs_; i++) {
+      mu_stack_.template segment<2>(segment_begin) = mu_ckc[i];
+      segment_begin += 2;
+    }
   }
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (is_contact_active_[i]) {
@@ -130,13 +138,16 @@ inline void SplitSolution::set_mu_stack() {
       }
     }
   }
+  assert(segment_begin == dimf_);
 }
 
 inline void SplitSolution::set_mu_vector() {
   int segment_begin = 0;
-  for (int i = 0; i < num_ckcs_; i++) {
-    mu_ckc[i] = mu_stack_.template segment<2>(segment_begin);
-    segment_begin += 2;
+  if (dimf_ckc_ > 0) {
+    for (int i = 0; i < num_ckcs_; i++) {
+      mu_ckc[i] = mu_stack_.template segment<2>(segment_begin);
+      segment_begin += 2;
+    }
   }
   for (int i = 0; i < max_num_contacts_; ++i) {
     if (is_contact_active_[i]) {
@@ -155,6 +166,7 @@ inline void SplitSolution::set_mu_vector() {
       }
     }
   }
+  assert(segment_begin == dimf_);
 }
 
 inline Eigen::VectorBlock<Eigen::VectorXd> SplitSolution::xi_stack() {
