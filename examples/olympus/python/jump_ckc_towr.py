@@ -1,10 +1,10 @@
 import robotoc
 from tojr import OptJumpTowr
 from initialization import calcualate_joint_states,make_sol_feaseble
+from logger import solution_to_blender_json
 from robotoc.cost.periodic_com_ref import TrajectoryRef
 import numpy as np
 import math
-import copy
 
 
 model_info = robotoc.RobotModelInfo()
@@ -63,7 +63,7 @@ q_standing = np.array([0., 0., 0.30, 0.0, 0., 0., 1.0,
                         -0.0, -1.4,  2.,  1., -1.6, #back right
                         -0.0,  1.4, -2., -1.,  1.6, #front left
                          0.0,  1.4, -2.,  1.,  1.6]) #front right
-                              ###inner###  ###outer###
+                              ###inner### ###outer###
 
 
 
@@ -253,6 +253,10 @@ print("Initial KKT error: ", ocp_solver.KKT_error(t0, q_0, v_0))
 ocp_solver.solve(t0, q_0, v_0)
 print("KKT error after convergence: ", ocp_solver.KKT_error(t0, q_0, v_0))
 print(ocp_solver.get_solver_statistics())
+
+
+json_path = "jump_2.5m.json"
+solution_to_blender_json(robot,ocp_solver.get_solution(),td,contact_sequence,json_path)
 
 # Plot results
 #kkt_data = [math.sqrt(e.kkt_error) for e in ocp_solver.get_solver_statistics().performance_index] + [ocp_solver.KKT_error()] # append KKT after convergence
