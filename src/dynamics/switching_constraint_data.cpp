@@ -8,7 +8,7 @@ SwitchingConstraintData::SwitchingConstraintData(const Robot& robot)
   : q(Eigen::VectorXd::Zero(robot.dimq())),
     dq(Eigen::VectorXd::Zero(robot.dimv())),
     PqT_xi(Eigen::VectorXd::Zero(robot.dimv())),
-    Pq_full_(Eigen::MatrixXd::Zero(robot.max_dimf(), robot.dimv())),
+    Pq_full_(Eigen::MatrixXd::Zero(robot.max_dimf_contact(), robot.dimv())),
     dimv_(robot.dimv()),
     dims_(0) {
 }

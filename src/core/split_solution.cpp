@@ -41,6 +41,8 @@ SplitSolution::SplitSolution()
 
 void SplitSolution::integrate(const Robot &robot, const double step_size,
                               const SplitDirection &d, const bool impact) {
+
+  assert(!(impact && dimf_ckc_ > 0));
   assert(f_stack().size() == d.df().size());
   assert(mu_stack().size() == d.dmu().size());
   robot.integrateConfiguration(d.dq(), step_size, q);
