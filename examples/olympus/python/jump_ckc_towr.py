@@ -54,7 +54,7 @@ dt = 0.010
 jump_length = np.array([2.5, 0, 0])
 take_off_duration = 0.8
 flight_duration = 0.20
-touch_down_duration = 0.0
+touch_down_duration = 0.5
 t0 = 0.
 use_sto = False
 
@@ -110,7 +110,7 @@ contact_position_landing = {k:v+jump_length for k,v in contact_positions_standin
 contact_status_landing.set_contact_placements(contact_position_landing)
 contact_status_landing.set_friction_coefficients(friction_coefficients)
 
-#contact_sequence.push_back(contact_status_landing, t0+take_off_duration+flight_duration, sto=use_sto)
+contact_sequence.push_back(contact_status_landing, t0+take_off_duration+flight_duration, sto=use_sto)
 
 # you can check the contact sequence via 
 # print(contact_sequence)
@@ -176,15 +176,15 @@ constraints.add("friction_cone", friction_cone)
 # Create the STO cost function. This is necessary even empty one to construct an OCP with a STO problem
 sto_cost = robotoc.STOCostFunction()
 # Create the STO constraints 
-sto_constraints = robotoc.STOConstraints(minimum_dwell_times=[0.10, 0.15],#touch_down_duration*0.7],
+sto_constraints = robotoc.STOConstraints(minimum_dwell_times=[0.10, 0.15,touch_down_duration*0.7],
                                             barrier_param=1.0e-03, 
                                             fraction_to_boundary_rule=0.995)
 
 # Create the cost function
 cost = robotoc.CostFunction()
-#refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
-refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight])
-#q_land = q_traj_landing[-1]
+refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight,q_traj_landing])
+#refrence_traj =TrajectoryRef(robot,[q_traj_takeoff,q_traj_flight])
+q_land = q_traj_landing[-1]
 q_weight = 10*np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 
                         0.01, 0.01, 0.01, 0.01, 0.01, 
                         0.01, 0.01, 0.01, 0.01, 0.01,
