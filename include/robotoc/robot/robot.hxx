@@ -618,22 +618,18 @@ inline void Robot::setImpactForces(const ImpactStatus &impact_status,
   assert(f.size() == max_num_contacts_);
   const int num_point_contacts = point_contacts_.size();
   const int num_surface_contacts = surface_contacts_.size();
+  std::for_each(fjoint_.begin(), fjoint_.end(),
+                [](pinocchio::Force &fi) { fi.setZero(); });
   for (int i = 0; i < num_point_contacts; ++i) {
     if (impact_status.isImpactActive(i)) {
       point_contacts_[i].computeJointForceFromContactForce(
           f[i].template head<3>(), fjoint_);
-    } else {
-      point_contacts_[i].computeJointForceFromContactForce(
-          Eigen::Vector3d::Zero(), fjoint_);
     }
   }
   for (int i = 0; i < num_surface_contacts; ++i) {
     if (impact_status.isImpactActive(i + num_point_contacts)) {
       surface_contacts_[i].computeJointForceFromContactWrench(
           f[i + num_point_contacts], fjoint_);
-    } else {
-      surface_contacts_[i].computeJointForceFromContactWrench(Vector6d::Zero(),
-                                                              fjoint_);
     }
   }
 }
