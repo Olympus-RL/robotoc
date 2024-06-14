@@ -50,7 +50,7 @@ robot.set_gravity(-3.72)
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
 robot.set_joint_effort_limit(joint_efforts_limit)
 
-dt = 0.010
+dt = 0.004
 jump_length = np.array([2.5, 0, 0])
 take_off_duration = 0.8
 flight_duration = 0.20
@@ -63,6 +63,13 @@ q_standing = np.array([0., 0., 0.30, 0.0, 0., 0., 1.0,
                         -0.0, -1.4,  2.,  1., -1.6, #back right
                         -0.0,  1.4, -2., -1.,  1.6, #front left
                          0.0,  1.4, -2.,  1.,  1.6]) #front right
+                              ###inner### ###outer###
+
+q_standing = np.array([0., 0., 0.48, 0.0, 0., 0., 1.0, 
+                         0.0,  .2,  0.4, -.2, -0.6,  #back left
+                        -0.0, -.2,  0.4,  .2, -0.6, #back right
+                        -0.0,  .2, -0.4, -.2,  0.6, #front left
+                         0.0,  .2, -0.4,  .2,  0.6]) #front right
                               ###inner### ###outer###
 
 
@@ -247,15 +254,15 @@ ocp_solver.set_solution(sol_towr)
 ocp_solver.init_constraints()
 
 
-
 ocp_solver.init_constraints()
 print("Initial KKT error: ", ocp_solver.KKT_error(t0, q_0, v_0))
 ocp_solver.solve(t0, q_0, v_0)
 print("KKT error after convergence: ", ocp_solver.KKT_error(t0, q_0, v_0))
 print(ocp_solver.get_solver_statistics())
+print("toatl_wiegt_per_foot:",robot.total_weight()/4)
 
 
-json_path = "jump_2.5m.json"
+json_path = "jump_2.5m_standing_dt=0.002.json"
 solution_to_blender_json(robot,ocp_solver.get_solution(),td,contact_sequence,json_path)
 
 # Plot results
