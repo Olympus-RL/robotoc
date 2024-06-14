@@ -1,5 +1,8 @@
 import robotoc
 import json
+from scipy.spatial.transform import Rotation as R 
+import pinocchio as pin
+
 
 def solution_to_blender_json(robot,solution,td,contact_sequence,save_path):
     frame_names = ["Body"]
@@ -10,10 +13,10 @@ def solution_to_blender_json(robot,solution,td,contact_sequence,save_path):
             frame_names.append(frame_name)
             for a in ["inner","outer"]:
                 for b in ["hip","shank"]:
-                    frame_name = "_".join([quad,b,a,"visual"])
+                    frame_name = "_".join([quad,b,a])
                     frame_names.append(frame_name)
 
-    frame2index = {}
+    
 
 
 
@@ -47,6 +50,15 @@ def solution_to_blender_json(robot,solution,td,contact_sequence,save_path):
             "F": [f.tolist() if f is not None else None for f in F],
             "P": [p.tolist() if p is not None else None for p in P]
         }
+
+        for frame_name in frame_names:
+            frame_pos = robot.frame_position(frame_name)
+            frame_R = robot.frame_rotation(frame_name)
+            quat = pin.Quaternion(frame_R)
+            frame_log[frame_name] = {
+                "pos": frame_pos.tolist(),
+                "rot": [quat.x,quat.y,quat.z,quat.w]
+            }
 
         log.append(frame_log)
 
