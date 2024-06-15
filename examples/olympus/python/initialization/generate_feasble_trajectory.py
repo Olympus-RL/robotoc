@@ -4,6 +4,8 @@ from numpy.typing import NDArray
 from math import sqrt
 import numpy as np
 from scipy.optimize import linprog
+from scipy import sparse
+import osqp
 
 import robotoc
 
@@ -85,7 +87,8 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
     A_friction_cone = np.zeros((5*num_contacts,3*num_contacts))
     c_slack_friction_cone = np.ones(5*num_contacts)
     
-    bounds_friction_cone = []
+    l_friction_cone = np.zeros(5*num_contacts)
+    u_friction_cone = np.ones(5*num_contacts)*1e4
     f_dim = 0
     cone_dim = 0
 
@@ -97,63 +100,61 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
             [0,-1,-mu/sqrt(2)], # -mu*f_z <= f_y
             [0,1,-mu/sqrt(2)],  # f_y <= mu*f_z
             [0,0,-1]])  # 0 <= f_z
-        bounds_friction_cone.append((None,None))
-        bounds_friction_cone.append((None,None))
-        bounds_friction_cone.append((None,None))
-        c_slack_friction_cone[cone_dim:cone_dim+4] = 1e4
-        c_slack_friction_cone[cone_dim+4] = 1e4
+        l_friction_cone[cone_dim:cone_dim+5] = -np.inf
+        u_friction_cone[cone_dim:cone_dim+5] = 0
         f_dim += 3
         cone_dim += 5
 
     bounds_u = []
-    A_u = np.zeros((2*dim_u,dim_u))
-    b_u = np.zeros(2*dim_u)
-    c_slack_u = np.ones(2*dim_u)*1e4
-    for i in range(dim_u):
-        bounds_u.append((None,None))
-        A_u[2*i:2*i+2,i]=np.array([1,-1]) #u_i <= torque_limits[i] and -u_i <= torque_limits[i] 
-        b_u[2*i:2*i+2] = np.array([torque_limits[i],torque_limits[i]])
-
+    A_u = np.eye(dim_u)
+    l_u = -torque_limits
+    u_u = torque_limits
+    
     J_contact = robot.get_contact_position_jacobian(contact_status)
     J_ckc = robot.get_ckc_jacobian()
     u_virtual = robot.rnea(q,v,a)
+    u_id = u_virtual
+    l_id = u_virtual
 
-    bounds_ckc = [(None,None) for _ in range(dim_f_ckc)]
-    c = np.zeros(dim_u+dim_f)
 
+    L = np.concatenate((l_id,l_u,l_friction_cone))
+    U = np.concatenate((u_id,u_u,u_friction_cone))
 
-    num_ineq = 2*dim_u + 5*num_contacts
+    num_ineq = dim_u + 5*num_contacts
     dim_x = dim_u + dim_f
     A_ineq = np.zeros((num_ineq,dim_x))
     b_ineq = np.zeros(num_ineq)
-    A_ineq[:2*dim_u,:dim_u] = A_u
-    b_ineq[:2*dim_u] = b_u
-    A_ineq[2*dim_u:,dim_u+dim_f_ckc:] = A_friction_cone
-    b_ineq[2*dim_u:] = b_friction_cone
+    A_ineq[:dim_u,:dim_u] = A_u
+    A_ineq[dim_u:,dim_u+dim_f_ckc:] = A_friction_cone
+    
 
     num_eq = robot.dimv()
     A_eq = np.zeros((num_eq,dim_x))
-    b_eq = u_virtual
     A_eq[:,:dim_u] = robot.S().T
     A_eq[:,dim_u:dim_u+dim_f_ckc] = J_ckc.T
     A_eq[:,dim_u+dim_f_ckc:] = J_contact.T
 
-    I_slack = np.eye(num_ineq)
-    c_slack = np.concatenate([c_slack_u,c_slack_friction_cone])
-    bounds_slack = [(0,None) for _ in range(num_ineq)]
 
+    #slack on eq 
+    num_slack = num_eq
+    I_slack = np.eye(num_slack)
+    P_slack = I_slack*1e4
 
-    c = np.concatenate((c,c_slack))
-    bounds =bounds_u + bounds_ckc + bounds_friction_cone + bounds_slack
+    A_slack = np.zeros((num_eq+num_ineq,dim_x+num_slack))
+    A_slack[:num_eq,:dim_x] = A_eq
+    A_slack[:num_eq,dim_x:] = I_slack
+    A_slack[num_eq:,:dim_x] = A_ineq
+    P = np.zeros((dim_x+num_slack,dim_x+num_slack))
+    P[dim_x:,dim_x:] = P_slack
 
-    A_ineq = np.concatenate((A_ineq,-I_slack),axis=1)
-    A_eq = np.concatenate((A_eq,np.zeros((num_eq,num_ineq))),axis=1)
-
-
-    res = linprog(c=c,A_ub=A_ineq,b_ub=b_ineq,bounds=bounds,A_eq=A_eq,b_eq=b_eq)
-    u = res.x[:dim_u]
-    f_ckc = res.x[dim_u:dim_u+dim_f_ckc]
-    f_contact_world = res.x[dim_u+dim_f_ckc:]
+    P_sparse = sparse.csc_matrix(P)
+    A_sparse = sparse.csc_matrix(A_slack)
+    m = osqp.OSQP()
+    m.setup(P=P_sparse, q=np.zeros(dim_x+num_slack), A=A_sparse, l=L, u=U,verbose=False,warm_start=True)
+    result = m.solve()
+    u = result.x[:dim_u]
+    f_ckc = result.x[dim_u:dim_u+dim_f_ckc]
+    f_contact_world = result.x[dim_u+dim_f_ckc:]
     F_contact = []
     F_ckc = []
 
@@ -181,17 +182,17 @@ def ID(robot,q,v,a,contact_status,torque_limits) -> Tuple[NDArray,List[NDArray],
 
     ## residuals
 
-    res_id = np.linalg.norm(A_eq[:,:-num_ineq] @ res.x[:-num_ineq] - b_eq)
-    res_ineq = (A_ineq[:,:-num_ineq] @ res.x[:-num_ineq] - b_ineq).clip(min=0)
-    res_friction_cone = np.linalg.norm(res_ineq[-5*num_contacts:])
-    res_u = np.linalg.norm(res_ineq[:2*dim_u])
-
-    if res_id + res_friction_cone + res_u > 1e-3 and False:
-        print("Warning: residuals are large")
-        print("residuals ID: ", res_id)
-        print("residuals friction cone:", res_friction_cone)
-        print("residuals u:", res_u)
-        print("="*20)
+    #res_id = np.linalg.norm(A_eq[:,:-num_ineq] @ result.x[:-num_ineq] - b_eq)
+    #res_ineq = (A_ineq[:,:-num_ineq] @ result.x[:-num_ineq] - b_ineq).clip(min=0)
+    #res_friction_cone = np.linalg.norm(res_ineq[-5*num_contacts:])
+    #res_u = np.linalg.norm(res_ineq[:2*dim_u])
+#
+    #if res_id + res_friction_cone + res_u > 1e-3 and False:
+    #    print("Warning: residuals are large")
+    #    print("residuals ID: ", res_id)
+    #    print("residuals friction cone:", res_friction_cone)
+    #    print("residuals u:", res_u)
+    #    print("="*20)
     
     return np.clip(u,-torque_limits+2,torque_limits-2),F_ckc,F_contact
 
