@@ -1,6 +1,6 @@
 import robotoc
 from tojr import OptJumpTowr
-from initialization import calcualate_joint_states,make_sol_feaseble
+from initialization import calcualate_joint_states,make_sol_feaseble,ID
 from logger import solution_to_blender_json
 from robotoc.cost.periodic_com_ref import TrajectoryRef
 import numpy as np
@@ -11,7 +11,7 @@ model_info = robotoc.RobotModelInfo()
 model_info.urdf_path = "/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/urdf/olympus.urdf"
 model_info.base_joint_type = robotoc.BaseJointType.FloatingBase
 baumgarte_time_step_contact = 0.05
-baumgarte_time_step_ckc = 0.05
+baumgarte_time_step_ckc = 0.005
 
 model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte_time_step_contact),
                              robotoc.ContactModelInfo('BackLeft_paw', baumgarte_time_step_contact),
@@ -50,9 +50,9 @@ robot.set_gravity(-3.72)
 robot.set_joint_velocity_limit(np.full(robot.dimv()-6, 31.0))
 robot.set_joint_effort_limit(joint_efforts_limit)
 
-dt = 0.004
-jump_length = np.array([2.5, 0, 0])
-take_off_duration = 0.8
+dt = 0.005
+jump_length = np.array([4.0, 0, 0])
+take_off_duration = 1.0
 flight_duration = 0.20
 touch_down_duration = 0.5
 t0 = 0.
@@ -65,7 +65,7 @@ q_standing = np.array([0., 0., 0.30, 0.0, 0., 0., 1.0,
                          0.0,  1.4, -2.,  1.,  1.6]) #front right
                               ###inner### ###outer###
 
-q_standing = np.array([0., 0., 0.48, 0.0, 0., 0., 1.0, 
+q_standing = np.array([0., 0., 0.49, 0.0, 0., 0., 1.0, 
                          0.0,  .2,  0.4, -.2, -0.6,  #back left
                         -0.0, -.2,  0.4,  .2, -0.6, #back right
                         -0.0,  .2, -0.4, -.2,  0.6, #front left
@@ -161,7 +161,8 @@ for i in range(len(td)):
         q_traj_flight.append(configuration_towr[-1].copy())
     elif phase == 2 and grid.type != robotoc.GridType.Impact:
         q_traj_landing.append(configuration_towr[-1].copy())
-    
+
+u_standing,_,_ = ID(robot,q_traj_takeoff[0],np.zeros(robot.dimv()),np.zeros(robot.dimv()),contact_status_standing,joint_efforts_limit)
 
 # Create the constraints
 constraints           = robotoc.Constraints(barrier_param=1.0e-06, fraction_to_boundary_rule=0.995)
@@ -197,9 +198,9 @@ q_weight = 10*np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                         0.01, 0.01, 0.01, 0.01, 0.01,
                         0.01, 0.01, 0.01, 0.01, 0.01,
                         0.01, 0.01, 0.01, 0.01, 0.01])
-q_weight_terminal = np.zeros(robot.dimv())
+q_weight_terminal = np.ones(robot.dimv())
 q_weight_terminal[:2] = 1000*np.array([1.0, 1.0])
-q_weight_terminal[2] = 10
+q_weight_terminal[2] = 1
 q_weight_terminal[3:6] = 0.1*np.array([1.0, 1.0, 1.0])
 q_weight_terminal[6:] = 0.1*np.ones(robot.dimv()-6)
 v_weight = np.full(robot.dimv(), 1.0e-6)
@@ -211,6 +212,11 @@ q_weight_impact = np.array([0., 0., 0., 0., 0., 0.,
                         0.1, 0.1, 0.1, 0.1, 0.1])
 v_weight_impact = np.full(robot.dimv(), 1.0)
 dv_weight_impact = np.full(robot.dimv(), 1.0e3)
+u_weight = np.full(robot.dimu(), 1.0e-3)
+u_ref = u_standing
+print("u_ref: ", u_ref)
+
+
 config_cost = robotoc.ConfigurationSpaceCost(robot)
 config_cost.set_ref(refrence_traj)
 #config_cost.set_q_ref(q_land)
@@ -222,6 +228,8 @@ config_cost.set_v_weight_terminal(v_weight)
 #config_cost.set_v_weight_impact(v_weight_impact)
 config_cost.set_dv_weight_impact(dv_weight_impact)
 config_cost.set_a_weight(a_weight)
+config_cost.set_u_weight(u_weight)
+config_cost.set_u_ref(u_ref)
 cost.add("config_cost", config_cost)
 
 # Create the OCP with the STO problem
@@ -262,7 +270,7 @@ print(ocp_solver.get_solver_statistics())
 print("toatl_wiegt_per_foot:",robot.total_weight()/4)
 
 
-json_path = "jump_2.5m_standing_dt=0.002.json"
+json_path = "jump_4m_dt=5ms_no_pitch_ref.json"
 solution_to_blender_json(robot,ocp_solver.get_solution(),td,contact_sequence,json_path)
 
 # Plot results
