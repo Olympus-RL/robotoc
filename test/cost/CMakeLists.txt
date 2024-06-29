@@ -1,8 +1,0 @@
-add_robotoc_test(configuration_space_cost_test)
-add_robotoc_test(task_space_3d_cost_test)
-add_robotoc_test(task_space_6d_cost_test)
-add_robotoc_test(com_cost_test)
-add_robotoc_test(local_contact_force_cost_test)
-add_robotoc_test(periodic_com_ref_test)
-add_robotoc_test(periodic_swing_foot_ref_test)
-add_robotoc_test(cost_function_test)

@@ -1,8 +1,0 @@
-pybind11_add_robotoc_module(solver interpolation_order)
-pybind11_add_robotoc_module(solver solver_options)
-pybind11_add_robotoc_module(solver solver_statistics)
-pybind11_add_robotoc_module(solver ocp_solver)
-pybind11_add_robotoc_module(solver unconstr_ocp_solver)
-pybind11_add_robotoc_module(solver unconstr_parnmpc_solver)
-
-install_robotoc_python_files(solver)

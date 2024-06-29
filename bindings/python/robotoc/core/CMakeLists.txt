@@ -1,7 +1,0 @@
-pybind11_add_robotoc_module(core split_solution)
-pybind11_add_robotoc_module(core split_direction)
-pybind11_add_robotoc_module(core split_kkt_residual)
-pybind11_add_robotoc_module(core split_kkt_matrix)
-pybind11_add_robotoc_module(core performance_index)
-
-install_robotoc_python_files(core)

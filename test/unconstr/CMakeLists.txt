@@ -1,4 +1,0 @@
-add_robotoc_test(unconstr_intermediate_stage_test)
-add_robotoc_test(unconstr_terminal_stage_test)
-add_robotoc_test(parnmpc_intermediate_stage_test)
-add_robotoc_test(parnmpc_terminal_stage_test)

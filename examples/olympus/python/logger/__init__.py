@@ -1,1 +1,0 @@
-from .blender import solution_to_blender_json
