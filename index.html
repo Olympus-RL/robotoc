@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OLYMPUS TO</title>
+    <title>My Video Page</title>
     <style>
         body {
             display: flex;
@@ -14,23 +14,28 @@
             margin: 0;
             font-family: Arial, sans-serif;
         }
+        .video-container {
+            max-width: 80%; /* Adjust the width as per your preference */
+        }
         h1 {
             text-align: center;
             margin-top: 20px;
         }
         video {
-            max-width: 100%;
-            height: auto;
+            width: 100%; /* Ensure the video takes the full width of its container */
+            height: auto; /* Maintain aspect ratio */
+            display: block; /* Remove default inline display */
         }
     </style>
 </head>
 <body>
-    <h1>OLYMPUS Jumping 4 Meter</h1>
-    <video controls>
-        <source src="output_video.mp4" type="video/mp4">
-        <!-- Include additional source tags for other formats if needed -->
-        Your browser does not support the video tag.
-    </video>
+    <h1>My Video Title</h1>
+    <div class="video-container">
+        <video controls>
+            <source src="output_video.mp4" type="video/mp4">
+            <!-- Include additional source tags for other formats if needed -->
+            Your browser does not support the video tag.
+        </video>
+    </div>
 </body>
 </html>
-
