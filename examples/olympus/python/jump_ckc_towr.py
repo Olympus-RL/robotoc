@@ -10,7 +10,7 @@ import math
 model_info = robotoc.RobotModelInfo()
 model_info.urdf_path = "/home/bolivar/OLYMPOC/robotoc/descriptions/olympus_description/urdf/olympus.urdf"
 model_info.base_joint_type = robotoc.BaseJointType.FloatingBase
-baumgarte_time_step_contact = 0.05
+baumgarte_time_step_contact = 0.005
 baumgarte_time_step_ckc = 0.005
 
 model_info.point_contacts = [robotoc.ContactModelInfo('FrontLeft_paw', baumgarte_time_step_contact),
@@ -24,7 +24,6 @@ model_info.ckcs = [robotoc.CKCInfo( "FrontLeft_ankle_outer","FrontLeft_ankle_inn
 
 #model_info.ckcs = []
 model_info.contact_inv_damping = 1.0e-12
-
 robot = robotoc.Robot(model_info)
 lower_limits = np.pi/180*np.array([ -20, -20., -30., -120, -240,  #back left
                                     -20, -120, -30., -20., -240, #back right
@@ -213,8 +212,8 @@ q_weight_impact = np.array([0., 0., 0., 0., 0., 0.,
 v_weight_impact = np.full(robot.dimv(), 1.0)
 dv_weight_impact = np.full(robot.dimv(), 1.0e3)
 u_weight = np.full(robot.dimu(), 1.0e-3)
-u_ref = u_standing
-print("u_ref: ", u_ref)
+u_ref =np.zeros_like(u_standing)
+
 
 
 config_cost = robotoc.ConfigurationSpaceCost(robot)
@@ -241,7 +240,7 @@ solver_options = robotoc.SolverOptions()
 solver_options.kkt_tol_mesh = 0.1
 solver_options.max_dt_mesh = T/N 
 solver_options.max_iter = 800
-solver_options.nthreads = 4
+solver_options.nthreads = 8
 solver_options.initial_sto_reg_iter = 0
 solver_options.enable_line_search=False
 solver_options.enable_benchmark=True
@@ -255,11 +254,7 @@ td = ocp_solver.get_time_discretization()
 sol_towr = make_sol_feaseble(robot,configuration_towr,td,contact_sequence)
 ocp_solver.set_solution(sol_towr)
 
-#ocp_solver.set_solution("q",q_0)
-#f_init = np.array([0,0,0.25])*robot.total_weight()
-#ocp_solver.set_solution("f",f_init)
-#ocp_solver.set_solution("v",v_0)
-ocp_solver.init_constraints()
+
 
 
 ocp_solver.init_constraints()
@@ -270,7 +265,7 @@ print(ocp_solver.get_solver_statistics())
 print("toatl_wiegt_per_foot:",robot.total_weight()/4)
 
 
-json_path = "jump_4m_dt=5ms_no_pitch_ref.json"
+json_path = "jump_4m_dt=5ms_refrence_traj.json"
 solution_to_blender_json(robot,ocp_solver.get_solution(),td,contact_sequence,json_path)
 
 # Plot results
@@ -282,10 +277,10 @@ solution_to_blender_json(robot,ocp_solver.get_solution(),td,contact_sequence,jso
 #plot_ts.plot(kkt_data=kkt_data, ts_data=ts_data, fig_name='jump_sto', 
 #             save_dir='jump_sto_log')
 #
-#plot_f = robotoc.utils.PlotContactForce(mu=mu)
-#plot_f.plot(f_traj=ocp_solver.get_solution('f', 'WORLD'), 
-#            time_discretization=ocp_solver.get_time_discretization(), 
-#            fig_name='jump_sto_f', save_dir='jump_sto_log')
+plot_f = robotoc.utils.PlotContactForce(mu=mu)
+plot_f.plot(f_traj=ocp_solver.get_solution('f', 'WORLD'), 
+            time_discretization=ocp_solver.get_time_discretization(), 
+           fig_name='jump_sto_f', save_dir='jump_sto_log')
 
 # Display results
 viewer = robotoc.utils.TrajectoryViewer(model_info=model_info, viewer_type='gepetto')
