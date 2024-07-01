@@ -1,1 +1,0 @@
-## make map with link to link and set anymals inertia for olympus
